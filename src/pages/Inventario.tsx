@@ -11,10 +11,10 @@ const Inventario: React.FC = () => {
 
   const cargarProductos = async () => {
     try {
-      const data = await obtenerProductos();
-      setProductos(data);
+      const datos = await obtenerProductos();
+      setProductos(datos);
     } catch (error) {
-      console.error('Error al cargar productos', error);
+      console.error("Error cargando productos:", error);
     }
   };
 
@@ -22,16 +22,20 @@ const Inventario: React.FC = () => {
     cargarProductos();
   }, []);
 
-  const handleEliminar = async (id: number) => {
-    if (confirm('¿Deseas eliminar este producto?')) {
-      await eliminarProducto(id);
-      cargarProductos();
-    }
-  };
-
   const handleEditar = (producto: Producto) => {
     setProductoSeleccionado(producto);
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleEliminar = async (id: number) => {
+    if (confirm('¿Estás seguro de eliminar este producto?')) {
+      try {
+        await eliminarProducto(id);
+        cargarProductos();
+      } catch (error) {
+        console.error("Error eliminando producto:", error);
+      }
+    }
   };
 
   const handleGuardado = () => {
@@ -39,28 +43,28 @@ const Inventario: React.FC = () => {
     cargarProductos();
   };
 
-  // Filtrado por clave, descripción o código de barras
   const productosFiltrados = productos.filter(p =>
     p.clave.toLowerCase().includes(busqueda.toLowerCase()) ||
-    p.descripcion.toLowerCase().includes(busqueda.toLowerCase()) ||
-    p.codigo_barras.toLowerCase().includes(busqueda.toLowerCase())
+    p.descripcion.toLowerCase().includes(busqueda.toLowerCase())
   );
 
   return (
-    <div className="p-4">
-      <h1 className="text-2xl font-bold mb-4">Inventario</h1>
+    <div className="container mx-auto p-6">
+      <h1 className="text-2xl font-bold mb-4 text-gray-700">Inventario</h1>
 
-      {/* Formulario para agregar o editar */}
+      {/* Formulario */}
       <ProductoForm producto={productoSeleccionado} onGuardado={handleGuardado} />
 
-      {/* Barra de búsqueda */}
-      <input
-        type="text"
-        placeholder="Buscar por clave, descripción o código de barras"
-        className="border p-2 mb-4 w-full"
-        value={busqueda}
-        onChange={e => setBusqueda(e.target.value)}
-      />
+      {/* Búsqueda */}
+      <div className="mb-4">
+        <input
+          type="text"
+          placeholder="Buscar por clave o descripción..."
+          value={busqueda}
+          onChange={e => setBusqueda(e.target.value)}
+          className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-400 outline-none"
+        />
+      </div>
 
       {/* Lista de productos */}
       <ProductoList
