@@ -1,20 +1,24 @@
-import React, { useEffect, useState } from 'react';
-import type { Producto } from '../types/Producto';
-import { obtenerProductos, eliminarProducto } from '../api/productos';
-import ProductoForm from '../components/ProductoForm';
-import ProductoList from '../components/ProductoList';
+import React, { useEffect, useState } from "react";
+import Layout from "../components/Layout";
+import InventarioTable from "../components/InventarioTable";
+import SearchBar from "../components/SearchBar";
+import ProductoModal from "../components/ProductoModal";
+import { obtenerProductos, eliminarProducto } from "../api/productos";
+import type { Producto } from "../types/Producto";
+import { PlusCircle } from "lucide-react";
 
 const Inventario: React.FC = () => {
   const [productos, setProductos] = useState<Producto[]>([]);
+  const [busqueda, setBusqueda] = useState("");
   const [productoSeleccionado, setProductoSeleccionado] = useState<Producto | null>(null);
-  const [busqueda, setBusqueda] = useState('');
+  const [mostrarModal, setMostrarModal] = useState(false);
 
   const cargarProductos = async () => {
     try {
-      const datos = await obtenerProductos();
-      setProductos(datos);
+      const data = await obtenerProductos();
+      setProductos(data);
     } catch (error) {
-      console.error("Error cargando productos:", error);
+      console.error("Error al cargar productos:", error);
     }
   };
 
@@ -24,55 +28,58 @@ const Inventario: React.FC = () => {
 
   const handleEditar = (producto: Producto) => {
     setProductoSeleccionado(producto);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setMostrarModal(true);
   };
 
   const handleEliminar = async (id: number) => {
-    if (confirm('¿Estás seguro de eliminar este producto?')) {
+    if (confirm("¿Deseas eliminar este producto?")) {
       try {
         await eliminarProducto(id);
         cargarProductos();
       } catch (error) {
-        console.error("Error eliminando producto:", error);
+        console.error("Error al eliminar producto:", error);
       }
     }
   };
 
-  const handleGuardado = () => {
+  const handleNuevo = () => {
     setProductoSeleccionado(null);
-    cargarProductos();
+    setMostrarModal(true);
   };
 
-  const productosFiltrados = productos.filter(p =>
-    p.clave.toLowerCase().includes(busqueda.toLowerCase()) ||
-    p.descripcion.toLowerCase().includes(busqueda.toLowerCase())
+  const productosFiltrados = productos.filter(
+    (p) =>
+      p.clave.toLowerCase().includes(busqueda.toLowerCase()) ||
+      p.descripcion.toLowerCase().includes(busqueda.toLowerCase())
   );
 
   return (
-    <div className="container mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-4 text-gray-700">Inventario</h1>
-
-      {/* Formulario */}
-      <ProductoForm producto={productoSeleccionado} onGuardado={handleGuardado} />
-
-      {/* Búsqueda */}
-      <div className="mb-4">
-        <input
-          type="text"
-          placeholder="Buscar por clave o descripción..."
-          value={busqueda}
-          onChange={e => setBusqueda(e.target.value)}
-          className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-400 outline-none"
-        />
+    <Layout>
+      <div className="flex justify-between items-center mb-6">
+        <SearchBar value={busqueda} onChange={setBusqueda} />
+        <button
+          onClick={handleNuevo}
+          className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 shadow"
+        >
+          <PlusCircle size={20} />
+          Agregar Producto
+        </button>
       </div>
 
-      {/* Lista de productos */}
-      <ProductoList
+      <InventarioTable
         productos={productosFiltrados}
         onEditar={handleEditar}
         onEliminar={handleEliminar}
       />
-    </div>
+
+      {mostrarModal && (
+        <ProductoModal
+          producto={productoSeleccionado}
+          onClose={() => setMostrarModal(false)}
+          onGuardado={cargarProductos}
+        />
+      )}
+    </Layout>
   );
 };
 

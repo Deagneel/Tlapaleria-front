@@ -17,9 +17,9 @@ const ProductoList: React.FC<Props> = ({ productos, onEditar, onEliminar }) => {
             <p className="text-sm text-gray-600">Unidad: {producto.unidad}</p>
           </div>
           <div className="text-sm space-y-1">
-            <p>Costo: ${producto.costo.toFixed(2)}</p>
-            <p>Precio Caja: ${producto.precio.toFixed(2)}</p>
-            <p>Precio Individual: ${producto.precio_individual.toFixed(2)}</p>
+            <p>Costo: ${ Number(producto.costo ?? 0).toFixed(2) }</p>
+            <p>Precio Caja: ${ Number(producto.precio ?? 0).toFixed(2) }</p>
+            <p>Precio Individual: ${ Number(producto.precio_individual ?? 0).toFixed(2) }</p>
             <p>Existencia: {producto.existencia}</p>
             <p>Existencia Mínima: {producto.existencia_min}</p>
           </div>

@@ -1,3 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 :root {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
@@ -11,6 +15,23 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+.input {
+  border: 1px solid #d1d5db; /* border-gray-300 */
+  border-radius: 0.5rem;      /* rounded-lg */
+  padding: 0.5rem;            /* p-2 */
+  outline: none;
+  color: #111827;             /* text-gray-900 */
+  background-color: #fff;
+}
+
+.input::placeholder {
+  color: #9ca3af;             /* placeholder-gray-400 */
+}
+
+.input:focus {
+  box-shadow: 0 0 0 2px #3b82f6; /* focus:ring-2 focus:ring-blue-500 */
 }
 
 a {
