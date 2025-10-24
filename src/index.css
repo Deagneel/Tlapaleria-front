@@ -2,6 +2,26 @@
 @tailwind components;
 @tailwind utilities;
 
+body {
+  margin: 0;
+  display: flex;
+  flex-direction: column; /* importante para layout vertical */
+  height: 100vh;          /* ocupa toda la altura del viewport */
+  width: 100vw;           /* ocupa todo el ancho del viewport */
+  min-width: 320px;
+  min-height: 100vh;
+  background-color: #242424; /* o según tu tema */
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+}
+
+#root {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;  /* permite que los hijos ocupen todo el espacio disponible */
+  height: 100%;
+  width: 100%;
+}
+
 :root {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;

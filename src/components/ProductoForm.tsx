@@ -39,6 +39,33 @@ const ProductoForm: React.FC<Props> = ({ producto, onGuardado }) => {
     }
   }, [producto]);
 
+  // Captura automática de códigos de barras
+  useEffect(() => {
+    let buffer = '';
+    let timer: number;
+
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if (e.key === 'Enter') {
+        if (buffer.length > 0) {
+          setForm(prev => ({ ...prev, codigo_barras: buffer }));
+          buffer = '';
+        }
+      } else {
+        buffer += e.key;
+        clearTimeout(timer);
+        timer = window.setTimeout(() => {
+          buffer = '';
+        }, 50); // ajusta según velocidad del lector
+      }
+    };
+
+    window.addEventListener('keypress', handleKeyPress);
+    return () => {
+      window.removeEventListener('keypress', handleKeyPress);
+      clearTimeout(timer);
+    };
+  }, []);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
     setForm(prev => ({
@@ -52,13 +79,11 @@ const ProductoForm: React.FC<Props> = ({ producto, onGuardado }) => {
 
     try {
       if (producto) {
-        // ✅ Aquí usamos producto.id que sí existe
         await actualizarProducto(producto.id, form);
       } else {
         await crearProducto(form);
       }
 
-      // Resetear formulario
       setForm({
         clave: '',
         descripcion: '',
@@ -72,7 +97,6 @@ const ProductoForm: React.FC<Props> = ({ producto, onGuardado }) => {
         activo: true,
       });
 
-      // Avisar al componente padre
       onGuardado();
     } catch (error) {
       console.error('Error al guardar el producto:', error);

@@ -16,9 +16,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         </div>
         <nav className="flex-1 p-4 space-y-2">
           <a className="block py-2 px-3 rounded-lg hover:bg-blue-50 font-medium cursor-pointer">
-            Productos
-          </a>
-          <a className="block py-2 px-3 rounded-lg hover:bg-blue-50 font-medium cursor-pointer">
             Ventas
           </a>
           <a className="block py-2 px-3 rounded-lg hover:bg-blue-50 font-medium cursor-pointer">
