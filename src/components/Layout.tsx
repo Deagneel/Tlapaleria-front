@@ -12,7 +12,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       <aside className="w-64 bg-white shadow-lg hidden md:flex flex-col">
         <div className="flex items-center gap-2 px-6 py-4 border-b">
           <Package className="text-blue-600" size={24} />
-          <h1 className="text-lg font-semibold text-blue-600">Inventario</h1>
+          <h1 className="text-lg font-semibold text-blue-600">Tlapalería Leo</h1>
         </div>
         <nav className="flex-1 p-4 space-y-2">
           <a className="block py-2 px-3 rounded-lg hover:bg-blue-50 font-medium cursor-pointer">
@@ -32,7 +32,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             <button className="md:hidden p-2 rounded hover:bg-gray-100">
               <Menu size={20} />
             </button>
-            <h2 className="font-semibold text-lg">Panel de Inventario</h2>
+            <h2 className="font-semibold text-lg">Almacen</h2>
           </div>
         </header>
 

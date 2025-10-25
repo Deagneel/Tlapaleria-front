@@ -4,8 +4,8 @@ export interface Producto {
   descripcion: string;
   codigo_barras: string;
   costo: number;
-  precio: number;           // precio de caja
-  precio_individual: number; // precio individual
+  precio: number;           
+  precio_individual: number; 
   existencia: number;
   existencia_min: number;
   unidad: string;

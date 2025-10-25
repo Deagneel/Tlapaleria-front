@@ -39,12 +39,18 @@ const ProductoForm: React.FC<Props> = ({ producto, onGuardado }) => {
     }
   }, [producto]);
 
-  // Captura automática de códigos de barras
+  // Escucha del lector de código de barras (solo si no hay modal activo)
   useEffect(() => {
+    const modalAbierto = document.querySelector('.fixed.inset-0');
+    if (modalAbierto) return; // no escuchar si hay un modal abierto
+
     let buffer = '';
     let timer: number;
 
     const handleKeyPress = (e: KeyboardEvent) => {
+      // si el usuario escribe manualmente dentro de un input, no interferir
+      if ((e.target as HTMLElement).tagName === 'INPUT') return;
+
       if (e.key === 'Enter') {
         if (buffer.length > 0) {
           setForm(prev => ({ ...prev, codigo_barras: buffer }));
@@ -55,7 +61,7 @@ const ProductoForm: React.FC<Props> = ({ producto, onGuardado }) => {
         clearTimeout(timer);
         timer = window.setTimeout(() => {
           buffer = '';
-        }, 50); // ajusta según velocidad del lector
+        }, 50);
       }
     };
 

@@ -22,12 +22,15 @@ const ProductoModal: React.FC<Props> = ({ producto, onClose, onGuardado }) => {
     activo: true,
   });
 
-  // Buffer para captura rápida del código de barras
+  // Captura de lector de código de barras (solo si el modal está visible)
   useEffect(() => {
     let buffer = "";
     let timer: number;
 
     const handleKeyPress = (e: KeyboardEvent) => {
+      // No interferir si el usuario escribe dentro de un input
+      if ((e.target as HTMLElement).tagName === "INPUT") return;
+
       if (e.key === "Enter") {
         if (buffer.length > 0) {
           setForm((prev) => ({ ...prev, codigo_barras: buffer }));
@@ -38,7 +41,7 @@ const ProductoModal: React.FC<Props> = ({ producto, onClose, onGuardado }) => {
         clearTimeout(timer);
         timer = window.setTimeout(() => {
           buffer = "";
-        }, 50); // ajusta según velocidad del lector
+        }, 50);
       }
     };
 
@@ -98,42 +101,32 @@ const ProductoModal: React.FC<Props> = ({ producto, onClose, onGuardado }) => {
 
         <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-4">
-            {/* Clave */}
-            <div className="flex flex-col">
-              <input
-                name="clave"
-                value={form.clave}
-                onChange={handleChange}
-                placeholder="Clave"
-                required
-                className="input"
-              />
-            </div>
+            <input
+              name="clave"
+              value={form.clave}
+              onChange={handleChange}
+              placeholder="Clave"
+              required
+              className="input"
+            />
 
-            {/* Descripción */}
-            <div className="flex flex-col">
-              <input
-                name="descripcion"
-                value={form.descripcion}
-                onChange={handleChange}
-                placeholder="Descripción"
-                required
-                className="input h-12"
-              />
-            </div>
+            <input
+              name="descripcion"
+              value={form.descripcion}
+              onChange={handleChange}
+              placeholder="Descripción"
+              required
+              className="input h-12"
+            />
 
-            {/* Código de barras */}
-            <div className="flex flex-col">
-              <input
-                name="codigo_barras"
-                value={form.codigo_barras}
-                onChange={handleChange}
-                placeholder="Código de barras"
-                className="input"
-              />
-            </div>
+            <input
+              name="codigo_barras"
+              value={form.codigo_barras}
+              onChange={handleChange}
+              placeholder="Código de barras"
+              className="input"
+            />
 
-            {/* Campos numéricos */}
             <div className="flex gap-4">
               <div className="flex-1 flex flex-col">
                 <span className="text-gray-700 text-sm mb-1">Costo</span>
@@ -149,7 +142,7 @@ const ProductoModal: React.FC<Props> = ({ producto, onClose, onGuardado }) => {
               </div>
 
               <div className="flex-1 flex flex-col">
-                <span className="text-gray-700 text-sm mb-1">Precio</span>
+                <span className="text-gray-700 text-sm mb-1">Precio Caja</span>
                 <input
                   name="precio"
                   type="number"
@@ -175,8 +168,6 @@ const ProductoModal: React.FC<Props> = ({ producto, onClose, onGuardado }) => {
               </div>
             </div>
           </div>
-
-          <label className="flex items-center gap-2 font-medium text-gray-700"></label>
 
           <div className="md:col-span-2">
             <details className="bg-gray-50 rounded-lg p-3">
@@ -226,3 +217,4 @@ const ProductoModal: React.FC<Props> = ({ producto, onClose, onGuardado }) => {
 };
 
 export default ProductoModal;
+
