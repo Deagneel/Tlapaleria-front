@@ -1,4 +1,5 @@
 import React from "react";
+import { Link } from "react-router-dom";
 import { Menu, Package } from "lucide-react";
 
 interface LayoutProps {
@@ -15,12 +16,24 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           <h1 className="text-lg font-semibold text-blue-600">Tlapalería Leo</h1>
         </div>
         <nav className="flex-1 p-4 space-y-2">
-          <a className="block py-2 px-3 rounded-lg hover:bg-blue-50 font-medium cursor-pointer">
+          <Link
+            to="/ventas"
+            className="block py-2 px-3 rounded-lg hover:bg-blue-50 font-medium"
+          >
             Ventas
-          </a>
-          <a className="block py-2 px-3 rounded-lg hover:bg-blue-50 font-medium cursor-pointer">
+          </Link>
+          <Link
+            to="/pedidos"
+            className="block py-2 px-3 rounded-lg hover:bg-blue-50 font-medium"
+          >
             Pedidos
-          </a>
+          </Link>
+          <Link
+            to="/inventario"
+            className="block py-2 px-3 rounded-lg hover:bg-blue-50 font-medium"
+          >
+            Almacén
+          </Link>
         </nav>
       </aside>
 
@@ -32,7 +45,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             <button className="md:hidden p-2 rounded hover:bg-gray-100">
               <Menu size={20} />
             </button>
-            <h2 className="font-semibold text-lg">Almacen</h2>
+            <h2 className="font-semibold text-lg"></h2>
           </div>
         </header>
 

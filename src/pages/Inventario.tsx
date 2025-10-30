@@ -53,9 +53,7 @@ const Inventario: React.FC = () => {
   // Preparación para lector de códigos: captura Enter
   const handleBusquedaKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
-      // En este punto la búsqueda se dispara automáticamente
-      // Esto funciona tanto si escribes manualmente como con el lector de código de barras
-      // No necesitamos hacer nada adicional porque el estado 'busqueda' ya está actualizado
+      // estado 'busqueda' ya está actualizado
     }
   };
 

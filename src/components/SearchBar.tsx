@@ -15,7 +15,7 @@ const SearchBar = forwardRef<HTMLInputElement, Props>(
         <input
           ref={ref} // <-- el ref se pasa aquí
           type="text"
-          placeholder="Buscar producto por clave o descripción..."
+          placeholder="Buscar..."
           value={value}
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={onKeyDown}
