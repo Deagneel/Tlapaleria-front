@@ -2,17 +2,16 @@ import React, { useEffect, useState, useRef, useMemo } from "react";
 import Layout from "../components/Layout";
 import SearchBar from "../components/SearchBar";
 import PedidoModal from "../components/PedidoModal";
-import { obtenerPedidos, eliminarPedido } from "../api/pedidos";
+import PedidoTable from "../components/PedidoTable";
+import { obtenerPedidos, eliminarPedido, actualizarPedido } from "../api/pedidos";
 import type { PedidoDTO } from "../types/Pedido";
-import { PlusCircle } from "lucide-react";
-import { Virtuoso } from "react-virtuoso";
-
-const ROW_HEIGHT = 60;
+import type { PedidoFullDTO } from "../types/PedidoDTO"; 
+import { obtenerPedidoCompleto } from "../api/pedidos";
 
 const Pedidos: React.FC = () => {
   const [pedidos, setPedidos] = useState<PedidoDTO[]>([]);
   const [busqueda, setBusqueda] = useState("");
-  const [pedidoSeleccionado, setPedidoSeleccionado] = useState<PedidoDTO | null>(null);
+  const [pedidoSeleccionado, setPedidoSeleccionado] = useState<PedidoFullDTO | null>(null); // <-- cambia a PedidoFullDTO
   const [mostrarModal, setMostrarModal] = useState(false);
   const [filtroEstado, setFiltroEstado] = useState<string>("Todos");
   const [fechaInicio, setFechaInicio] = useState<string>("");
@@ -36,27 +35,55 @@ const Pedidos: React.FC = () => {
     setMostrarModal(true);
   };
 
-  const handleEditar = (pedido: PedidoDTO) => {
-    setPedidoSeleccionado(pedido);
-    setMostrarModal(true);
+  const handleEditar = async (pedido: PedidoDTO) => {
+    if (!pedido.id) {
+      console.error("El pedido no tiene id válido:", pedido);
+      alert("No se puede editar este pedido (id faltante).");
+      return;
+    }
+
+    try {
+      const data: PedidoFullDTO = await obtenerPedidoCompleto(pedido.id);
+      setPedidoSeleccionado(data);
+      setMostrarModal(true);
+    } catch (err) {
+      console.error("Error al obtener pedido completo:", err);
+      alert("No se pudo cargar el pedido completo");
+    }
   };
+
+
 
   const handleEliminar = async (id: number) => {
     if (confirm("¿Deseas eliminar este pedido?")) {
-      try { await eliminarPedido(id); cargarPedidos(); }
-      catch (error) { console.error(error); }
+      try {
+        await eliminarPedido(id);
+        cargarPedidos();
+      } catch (error) {
+        console.error(error);
+      }
+    }
+  };
+
+  const handleCambiarEstado = async (pedido: PedidoDTO, nuevoEstado: "SURTIDO" | "ENTREGADO") => {
+    try {
+      await actualizarPedido(pedido.id!, { ...pedido, estado: nuevoEstado });
+      cargarPedidos();
+    } catch (err) {
+      console.error("Error al cambiar estado:", err);
+      alert("No se pudo cambiar el estado del pedido.");
     }
   };
 
   const pedidosFiltrados = useMemo(() => {
     return pedidos
-      .filter(p => filtroEstado === "Todos" || p.estado.toLowerCase() === filtroEstado.toLowerCase())
+      .filter(p => filtroEstado === "Todos" || p.estado?.toLowerCase() === filtroEstado.toLowerCase())
       .filter(p => p.cliente.toLowerCase().includes(busqueda.toLowerCase()))
       .filter(p => {
         if (!p.fecha) return false;
-        const fecha = new Date(p.fecha);
-        if (fechaInicio && fecha < new Date(fechaInicio)) return false;
-        if (fechaFin && fecha > new Date(fechaFin)) return false;
+        const fechaPedido = new Date(p.fecha);
+        if (fechaInicio && fechaPedido < new Date(fechaInicio)) return false;
+        if (fechaFin && fechaPedido > new Date(fechaFin)) return false;
         return true;
       });
   }, [pedidos, busqueda, filtroEstado, fechaInicio, fechaFin]);
@@ -71,17 +98,12 @@ const Pedidos: React.FC = () => {
           value={busqueda}
           onChange={setBusqueda}
           ref={searchRef}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault(); // evita submit accidental
-            }
-          }}
+          onKeyDown={(e) => { if (e.key === "Enter") e.preventDefault(); }}
         />
         <button
           onClick={handleNuevo}
           className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 shadow"
         >
-          <PlusCircle size={20} />
           Nuevo Pedido
         </button>
       </div>
@@ -123,58 +145,17 @@ const Pedidos: React.FC = () => {
         </div>
       </div>
 
-      {/* Tabla virtualizada */}
-      <div className="border rounded-lg overflow-hidden h-[70vh]">
-        <div className="grid px-4 py-2 bg-blue-600 text-white font-semibold" style={{ gridTemplateColumns: "2fr 2fr 1fr 1fr 1fr" }}>
-          <div>Pedido</div>
-          <div>Fecha</div>
-          <div>Estado</div>
-          <div>Total</div>
-          <div className="text-center">Acciones</div>
-        </div>
-
-        {pedidosFiltrados.length === 0 ? (
-          <p className="text-gray-500 mt-6 text-center">No hay pedidos que coincidan.</p>
-        ) : (
-          <Virtuoso
-            data={pedidosFiltrados}
-            itemContent={(index, pedido) => {
-              const fechaPedido = pedido.fecha ? new Date(pedido.fecha) : null;
-              return (
-                <div
-                  key={pedido.id}
-                  className="grid px-4 py-2 items-center border-b hover:bg-gray-50 transition"
-                  style={{ gridTemplateColumns: "2fr 2fr 1fr 1fr 1fr", minHeight: ROW_HEIGHT }}
-                >
-                  <div>{pedido.cliente}</div>
-                  <div>{fechaPedido ? fechaPedido.toLocaleString() : "N/A"}</div>
-                  <div className="capitalize">{pedido.estado}</div>
-                  <div>${Number(pedido.total ?? 0).toFixed(2)}</div>
-                  <div className="flex justify-center gap-2">
-                    <button
-                      onClick={() => handleEditar(pedido)}
-                      className="bg-gray-300 text-blue-600 hover:bg-gray-400 p-1.5 rounded transition"
-                    >
-                      Editar
-                    </button>
-                    <button
-                      onClick={() => handleEliminar(pedido.id!)}
-                      className="bg-gray-300 text-red-500 hover:bg-gray-400 p-1.5 rounded transition"
-                    >
-                      Eliminar
-                    </button>
-                  </div>
-                </div>
-              );
-            }}
-            style={{ height: "100%" }}
-          />
-        )}
-      </div>
+      {/* Tabla de pedidos */}
+      <PedidoTable
+        pedidos={pedidosFiltrados}
+        onEditar={handleEditar}
+        onEliminar={handleEliminar}
+        onCambiarEstado={handleCambiarEstado}
+      />
 
       {mostrarModal && (
         <PedidoModal
-          pedido={pedidoSeleccionado}
+          pedido={pedidoSeleccionado} // ahora es PedidoFullDTO
           onClose={() => setMostrarModal(false)}
           onGuardado={cargarPedidos}
         />

@@ -1,142 +1,80 @@
-import React, { useMemo, useEffect, useState } from "react";
-import { Virtuoso } from "react-virtuoso";
-import { Trash } from "lucide-react";
-import type { Pedido } from "../types/Pedido";
+import React from "react";
+import type { PedidoDTO } from "../types/Pedido";
 
 interface Props {
-  pedidos: Pedido[];
-  busqueda: string;
+  pedidos: PedidoDTO[];
+  onEditar: (pedido: PedidoDTO) => void;
   onEliminar: (id: number) => void;
-  paginaActual: number;
-  setPaginaActual: (num: number) => void;
+  onCambiarEstado: (pedido: PedidoDTO, nuevoEstado: "SURTIDO" | "ENTREGADO") => void;
 }
 
-const ROW_HEIGHT = 50;
-const DEFAULT_PAGE_SIZE = 20;
-
-const PedidoTable: React.FC<Props> = ({ pedidos, busqueda, onEliminar, paginaActual, setPaginaActual }) => {
-  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
-
-  const pedidosFiltrados = useMemo(() => {
-    return pedidos.filter((p) =>
-      p.cliente.toLowerCase().includes(busqueda.toLowerCase())
-    );
-  }, [pedidos, busqueda]);
-
-  const totalPaginas = Math.ceil(pedidosFiltrados.length / pageSize);
-  const startIndex = (paginaActual - 1) * pageSize;
-  const endIndex = startIndex + pageSize;
-  const pedidosPagina = pedidosFiltrados.slice(startIndex, endIndex);
-
-  // Reiniciar página si filtros o búsqueda cambian
-  useEffect(() => {
-    setPaginaActual(1);
-  }, [busqueda, pageSize]);
-
-  const cambiarPagina = (num: number) => {
-    if (num < 1) num = 1;
-    if (num > totalPaginas) num = totalPaginas;
-    setPaginaActual(num);
-  };
-
+const PedidoTable: React.FC<Props> = ({ pedidos, onEditar, onEliminar, onCambiarEstado }) => {
   return (
-    <div className="flex flex-col h-screen bg-white shadow rounded-lg border border-gray-200">
-      {/* Encabezado de tabla */}
-      <div
-        className="grid px-4 py-2 bg-blue-600 text-white font-semibold flex-shrink-0"
-        style={{ gridTemplateColumns: "1fr 2fr 1fr 1fr" }}
-      >
-        <div>ID</div>
-        <div>Cliente</div>
+    <div className="border rounded-lg overflow-auto h-[70vh]">
+      <div className="grid px-4 py-2 bg-blue-600 text-white font-semibold" style={{ gridTemplateColumns: "2fr 2fr 1fr 1fr 1fr" }}>
+        <div>Pedido</div>
+        <div>Fecha</div>
+        <div>Estado</div>
         <div>Total</div>
         <div className="text-center">Acciones</div>
       </div>
 
-      {/* Lista virtualizada */}
-      <div className="flex-1 overflow-hidden">
-        {pedidosFiltrados.length === 0 ? (
-          <p className="text-gray-500 mt-6 text-center">No hay pedidos que coincidan.</p>
-        ) : (
-          <Virtuoso
-            data={pedidosPagina}
-            itemContent={(index, pedido) => (
-              <div
-                key={pedido.id}
-                className="border-b border-gray-100 hover:bg-gray-50 transition"
-                style={{ minHeight: ROW_HEIGHT }}
-              >
-                <div
-                  className="grid px-4 py-2 items-center"
-                  style={{ gridTemplateColumns: "1fr 2fr 1fr 1fr" }}
+      {pedidos.length === 0 ? (
+        <p className="text-gray-500 mt-6 text-center">No hay pedidos que coincidan.</p>
+      ) : (
+        pedidos.map((pedido) => {
+          const fechaPedido = pedido.fecha ? new Date(pedido.fecha) : null;
+
+          return (
+            <div
+              key={pedido.id}
+              className="grid px-4 py-2 items-center border-b hover:bg-gray-50 transition"
+              style={{ gridTemplateColumns: "2fr 2fr 1fr 1fr 1fr", minHeight: 60 }}
+            >
+              <div>{pedido.cliente}</div>
+              <div>{fechaPedido ? fechaPedido.toLocaleString() : "N/A"}</div>
+              <div className="capitalize">{pedido.estado}</div>
+              <div>${Number(pedido.total ?? 0).toFixed(2)}</div>
+              <div className="flex justify-center gap-2">
+                {/* Editar solo si no está ENTREGADO */}
+                {pedido.estado !== "ENTREGADO" && (
+                  <button
+                    onClick={() => onEditar(pedido)}
+                    className="bg-gray-300 text-blue-600 hover:bg-gray-400 p-1.5 rounded transition"
+                  >
+                    Editar
+                  </button>
+                )}
+
+                <button
+                  onClick={() => onEliminar(pedido.id!)}
+                  className="bg-gray-300 text-red-500 hover:bg-gray-400 p-1.5 rounded transition"
                 >
-                  <div>{pedido.id}</div>
-                  <div className="break-words">{pedido.cliente}</div>
-                  <div>${Number(pedido.total ?? 0).toFixed(2)}</div>
+                  Eliminar
+                </button>
 
-                  <div className="flex justify-center gap-3">
-                    <button
-                      onClick={() => onEliminar(pedido.id!)}
-                      className="bg-gray-300 text-red-500 hover:bg-gray-400 p-1.5 rounded transition"
-                      title="Eliminar"
-                    >
-                      <Trash size={18} />
-                    </button>
-                  </div>
-                </div>
+                {/* Botón de avance de estado */}
+                {pedido.estado === "PENDIENTE" && (
+                  <button
+                    onClick={() => onCambiarEstado(pedido, "SURTIDO")}
+                    className="bg-yellow-300 text-yellow-800 hover:bg-yellow-400 p-1.5 rounded transition"
+                  >
+                    Pasar a SURTIDO
+                  </button>
+                )}
+                {pedido.estado === "SURTIDO" && (
+                  <button
+                    onClick={() => onCambiarEstado(pedido, "ENTREGADO")}
+                    className="bg-green-300 text-green-800 hover:bg-green-400 p-1.5 rounded transition"
+                  >
+                    Pasar a ENTREGADO
+                  </button>
+                )}
               </div>
-            )}
-            style={{ height: "100%" }}
-          />
-        )}
-      </div>
-
-      {/* Paginación */}
-      <div className="flex justify-between items-center px-4 py-3 border-t border-gray-200 flex-shrink-0">
-        <div className="flex items-center gap-2">
-          <span>Página:</span>
-          <button
-            onClick={() => cambiarPagina(1)}
-            className="px-2 py-1 border rounded bg-gray-200 text-gray-700 hover:bg-gray-300 hover:text-black"
-          >
-            {"<<"}
-          </button>
-          <button
-            onClick={() => cambiarPagina(paginaActual - 1)}
-            className="px-2 py-1 border rounded bg-gray-200 text-gray-700 hover:bg-gray-300 hover:text-black"
-          >
-            {"<"}
-          </button>
-          <span>
-            {paginaActual} / {totalPaginas}
-          </span>
-          <button
-            onClick={() => cambiarPagina(paginaActual + 1)}
-            className="px-2 py-1 border rounded bg-gray-200 text-gray-700 hover:bg-gray-300 hover:text-black"
-          >
-            {">"}
-          </button>
-          <button
-            onClick={() => cambiarPagina(totalPaginas)}
-            className="px-2 py-1 border rounded bg-gray-200 text-gray-700 hover:bg-gray-300 hover:text-black"
-          >
-            {">>"}
-          </button>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <label>Filas por página:</label>
-          <select
-            value={pageSize}
-            onChange={(e) => setPageSize(Number(e.target.value))}
-            className="border rounded p-1 bg-white text-gray-800"
-          >
-            <option value={10}>10</option>
-            <option value={20}>20</option>
-            <option value={30}>30</option>
-            <option value={50}>50</option>
-          </select>
-        </div>
-      </div>
+            </div>
+          );
+        })
+      )}
     </div>
   );
 };
