@@ -23,6 +23,7 @@ interface DetalleTemp {
   precio: number;
   recibido?: boolean;
   precioSugerido?: number;
+  precioEditable?: number;
   precioIndividualEditable?: number;
   marcados?: boolean;
   esTemporal?: boolean;
@@ -206,7 +207,7 @@ const PedidoModal: React.FC<Props> = ({ pedido, onClose, onGuardado }) => {
       } else {
         await actualizarPedido(pedido.id!, pedidoBackend);
       }
-
+      
       // Si estamos pasando a SURTIDO, actualizar productos con existencia
       if (estadoDestino === "SURTIDO") {
         for (const d of detalles) {
@@ -227,15 +228,22 @@ const PedidoModal: React.FC<Props> = ({ pedido, onClose, onGuardado }) => {
         }
       }
 
-      // Si pasamos a ENTREGADO, eliminar productos temporales
+      // Si pasamos a ENTREGADO, eliminar productos temporales del pedido actual
       if (estadoDestino === "ENTREGADO") {
-        const todos = await obtenerProductos();
-        const inactivos = todos.filter(p => p.activo === false);
-        for (const p of inactivos) {
-          try { await eliminarProducto(p.id); } 
-          catch (err) { console.error("Error al eliminar producto inactivo:", p.id, err); }
+        const temporalesDelPedido = detalles
+          .map(d => d.producto)
+          .filter(p => p.activo === false);
+
+        for (const prod of temporalesDelPedido) {
+          try {
+            await eliminarProducto(prod.id);
+            console.log(`Producto temporal eliminado: ${prod.descripcion} (${prod.clave})`);
+          } catch (err) {
+            console.error("Error al eliminar producto temporal:", prod.id, err);
+          }
         }
       }
+
 
       onGuardado();
       onClose();
@@ -252,15 +260,35 @@ const PedidoModal: React.FC<Props> = ({ pedido, onClose, onGuardado }) => {
   };
 
   const onProductoGuardado = async () => {
-    const data = await obtenerProductos();
-    setProductosDisponibles(data);
-    setDetalles(prev => prev.map(d => {
-      const prod = data.find(p => p.id === d.producto.id);
-      return prod ? { ...d, producto: prod } : d;
-    }));
-    setMostrarProductoModal(false);
-    setProductoParaEditar(null);
+    try {
+      // Si el producto que se acaba de editar estaba inactivo, forzamos activo = true
+      if (productoParaEditar && productoParaEditar.activo === false) {
+        await actualizarProducto(productoParaEditar.id, {
+          ...productoParaEditar,
+          activo: true,
+        });
+      }
+
+      // Refrescar lista de productos después de guardar
+      const data = await obtenerProductos();
+      setProductosDisponibles(data);
+
+      // Actualizar detalles si el producto fue modificado
+      setDetalles(prev =>
+        prev.map(d => {
+          const prod = data.find(p => p.id === d.producto.id);
+          return prod ? { ...d, producto: prod, esTemporal: !prod.activo } : d;
+        })
+      );
+
+    } catch (err) {
+      console.error("Error al actualizar estado del producto:", err);
+    } finally {
+      setMostrarProductoModal(false);
+      setProductoParaEditar(null);
+    }
   };
+
 
   // ----------------------
   // Render
@@ -274,8 +302,8 @@ const PedidoModal: React.FC<Props> = ({ pedido, onClose, onGuardado }) => {
 
         <form onSubmit={e => handleSubmit(e)} className="grid grid-cols-1 gap-4">
           {/* Cliente y estado */}
-          <div className="flex gap-4 items-end">
-            <div className="flex-1">
+          <div className="flex gap-4 items-end flex-wrap">
+            <div className="flex-1 min-w-[200px]">
               <label className="block text-gray-700 mb-1">Nombre del Pedido</label>
               <input type="text" value={cliente} onChange={e => setCliente(e.target.value)} required className="input w-full" />
             </div>
@@ -287,8 +315,8 @@ const PedidoModal: React.FC<Props> = ({ pedido, onClose, onGuardado }) => {
 
           {/* Productos solo si PENDIENTE */}
           {esPendiente && (
-            <div className="flex gap-2 items-end">
-              <div className="flex-1">
+            <div className="flex flex-wrap gap-2 items-end">
+              <div className="flex-1 min-w-[200px]">
                 <label className="block text-gray-700 mb-1">Buscar producto</label>
                 <input
                   type="text"
@@ -304,7 +332,11 @@ const PedidoModal: React.FC<Props> = ({ pedido, onClose, onGuardado }) => {
                     className="border rounded p-2 w-full mt-1 bg-gray-100"
                   >
                     <option value="">Seleccionar producto</option>
-                    {productosFiltrados.map(p => <option key={p.id} value={p.id}>{p.descripcion} ({p.clave}) - ${p.costo.toFixed(2)}</option>)}
+                    {productosFiltrados.map(p => (
+                      <option key={p.id} value={p.id}>
+                        {p.descripcion} ({p.clave}) - ${p.costo.toFixed(2)}
+                      </option>
+                    ))}
                   </select>
                 )}
               </div>
@@ -314,60 +346,238 @@ const PedidoModal: React.FC<Props> = ({ pedido, onClose, onGuardado }) => {
                 <input type="number" min={1} value={cantidadTemp} onChange={e => setCantidadTemp(Number(e.target.value))} className="input w-full" />
               </div>
 
-              <button type="button" onClick={agregarDetalle} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-1">
-                <Plus size={16}/> Agregar
-              </button>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={agregarDetalle}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-1"
+                >
+                  <Plus size={16}/> Agregar
+                </button>
 
-              <button type="button" onClick={() => {
-                const clave = prompt("Clave del producto:") ?? "";
-                if (!clave) return;
-                const descripcion = prompt("Descripción:") ?? "";
-                if (!descripcion) return;
-                const cantidadRaw = prompt("Cantidad:", "1") ?? "1";
-                const cantidad = Number(cantidadRaw) || 1;
-                const costoRaw = prompt("Costo (opcional):", "0") ?? "0";
-                const costo = Number(costoRaw) || 0;
-                agregarProductoTemporal(clave, descripcion, cantidad, costo);
-              }} className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300">Agregar temporal</button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const clave = prompt("Clave del producto:") ?? "";
+                    if (!clave) return;
+                    const descripcion = prompt("Descripción:") ?? "";
+                    if (!descripcion) return;
+                    const cantidadRaw = prompt("Cantidad:", "1") ?? "1";
+                    const cantidad = Number(cantidadRaw) || 1;
+                    const costoRaw = prompt("Costo (opcional):", "0") ?? "0";
+                    const costo = Number(costoRaw) || 0;
+                    agregarProductoTemporal(clave, descripcion, cantidad, costo);
+                  }}
+                  className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300"
+                >
+                  Agregar temporal
+                </button>
+              </div>
             </div>
           )}
 
           {/* Tabla de detalles */}
-          <div className="border rounded-lg overflow-auto max-h-72">
-            <div className="grid grid-cols-6 bg-gray-100 px-4 py-2 font-semibold text-gray-700">
+          <div className="border rounded-lg overflow-auto max-h-[500px]">
+            <div className="grid grid-cols-10 bg-gray-100 px-4 py-2 font-semibold text-gray-700 text-sm min-w-[900px]">
               <div>Clave</div>
               <div>Producto</div>
               <div>Cantidad</div>
-              <div>{esSurtido ? "Costo (editable)" : "Costo"}</div>
+              <div>Costo actual</div>
+              <div>Nuevo costo</div>
+              <div>Precio actual</div>
+              <div>Precio individual</div>
               {esSurtido && <div>Recibido</div>}
               <div>Subtotal</div>
               <div className="text-center">Acciones</div>
             </div>
 
-            {detalles.map(d => {
-              const subtotal = d.cantidad * d.precio;
+            {detalles.map((d) => {
+              const costoOriginal = Number(d.producto.costo ?? 0);
+              const nuevoCosto = Number(d.precio ?? 0);
+              const diffPercent =
+                costoOriginal > 0 ? ((nuevoCosto - costoOriginal) / costoOriginal) * 100 : 0;
+              const subtotal = (nuevoCosto || 0) * (d.cantidad || 0);
+              let diffColor = "";
+              if (Math.abs(diffPercent) >= 10) diffColor = diffPercent > 0 ? "text-green-600" : "text-red-600";
+
+              const recalcularPrecio = (nuevoCosto: number) => {
+              const precioViejo = Number(d.producto.precio ?? 0);
+              const diferencia = nuevoCosto - costoOriginal; 
+              const nuevoPrecioRaw = precioViejo + diferencia;
+              if (isNaN(nuevoPrecioRaw)) return Number(precioViejo.toFixed(2));
+              const entero = Math.trunc(nuevoPrecioRaw);
+              const fraccion = Math.abs(nuevoPrecioRaw - entero);
+              if (diferencia > 0) {
+                return fraccion >= 0.5 ? Math.ceil(nuevoPrecioRaw) : Math.floor(nuevoPrecioRaw);
+              } else if (diferencia < 0) {
+                return fraccion >= 0.4 ? Math.ceil(nuevoPrecioRaw) : Math.floor(nuevoPrecioRaw);
+              } else {
+                return Number(nuevoPrecioRaw.toFixed(2));
+              }
+            };
+
               return (
-                <div key={d.producto.id} className={`grid grid-cols-6 px-4 py-2 border-b items-center ${d.marcados ? "bg-green-50" : ""}`}>
+                <div
+                  key={d.producto.id}
+                  className={`grid grid-cols-10 px-4 py-2 border-b items-center text-sm min-w-[900px] ${
+                    d.marcados ? "bg-green-50" : ""
+                  }`}
+                >
                   <div>{d.producto.clave}</div>
-                  <div>{d.producto.descripcion}</div>
-                  <div>
-                    <input type="number" min={1} value={d.cantidad} onChange={e => actualizarCantidad(d.producto.id, Number(e.target.value))} className="input w-16" />
+
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span>{d.producto.descripcion}</span>
+                    {d.esTemporal && (
+                      <button
+                        type="button"
+                        className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded hover:bg-yellow-200 whitespace-nowrap"
+                        onClick={() => abrirProductoModalPara(d.producto)}
+                      >
+                        Completar
+                      </button>
+                    )}
                   </div>
+
                   <div>
-                    {esSurtido
-                      ? <input type="number" value={d.precio} onChange={e => setDetalles(prev => prev.map(det => det.producto.id === d.producto.id ? {...det, precio: Number(e.target.value)} : det))} className="input w-20" />
-                      : `$${d.precio.toFixed(2)}`
-                    }
+                    <input
+                      type="number"
+                      min={1}
+                      value={d.cantidad}
+                      onChange={(e) => actualizarCantidad(d.producto.id, Number(e.target.value))}
+                      className="input w-16"
+                    />
                   </div>
+
+                  {/* Costo actual */}
+                  <div>${costoOriginal.toFixed(2)}</div>
+
+                  {/* Nuevo costo editable + botón IVA */}
+                  <div className="flex items-center gap-1 flex-wrap">
+                    {esSurtido ? (
+                      <>
+                        <input
+                          type="number"
+                          value={nuevoCosto}
+                          onChange={(e) => {
+                            const nuevo = Number(e.target.value);
+                            setDetalles((prev) =>
+                              prev.map((det) =>
+                                det.producto.id === d.producto.id
+                                  ? {
+                                      ...det,
+                                      precio: nuevo,
+                                      precioEditable: recalcularPrecio(nuevo),
+                                    }
+                                  : det
+                              )
+                            );
+                          }}
+                          className="input w-20"
+                        />
+                        <button
+                          type="button"
+                          title="Aplicar 16% (IVA)"
+                          className="px-2 py-1 bg-gray-200 rounded hover:bg-gray-300 whitespace-nowrap"
+                          onClick={() => {
+                            const nuevo = Number((nuevoCosto * 1.16).toFixed(2));
+                            setDetalles((prev) =>
+                              prev.map((det) =>
+                                det.producto.id === d.producto.id
+                                  ? {
+                                      ...det,
+                                      precio: nuevo,
+                                      precioEditable: recalcularPrecio(nuevo),
+                                    }
+                                  : det
+                              )
+                            );
+                          }}
+                        >
+                          +16%
+                        </button>
+
+                        {Math.abs(diffPercent) >= 10 && (
+                          <span
+                            className={`text-xs ml-1 ${diffColor}`}
+                            title={`Cambio de ${diffPercent.toFixed(1)}% respecto al costo original`}
+                          >
+                            ⚠️
+                          </span>
+                        )}
+                      </>
+                    ) : (
+                      `$${nuevoCosto.toFixed(2)}`
+                    )}
+                  </div>
+
+                  {/* Precio actual editable */}
+                  <div>
+                    {esSurtido ? (
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={d.precioEditable ?? d.producto.precio ?? 0}
+                        onChange={(e) =>
+                          setDetalles((prev) =>
+                            prev.map((det) =>
+                              det.producto.id === d.producto.id
+                                ? { ...det, precioEditable: Number(e.target.value) }
+                                : det
+                            )
+                          )
+                        }
+                        className="input w-24"
+                      />
+                    ) : (
+                      `$${Number(d.producto.precio ?? 0).toFixed(2)}`
+                    )}
+                  </div>
+
+                  {/* Precio individual editable */}
+                  <div>
+                    {esSurtido ? (
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={d.precioIndividualEditable ?? d.producto.precio_individual ?? 0}
+                        onChange={(e) =>
+                          setDetalles((prev) =>
+                            prev.map((det) =>
+                              det.producto.id === d.producto.id
+                                ? {
+                                    ...det,
+                                    precioIndividualEditable: Number(e.target.value),
+                                  }
+                                : det
+                            )
+                          )
+                        }
+                        className="input w-24"
+                      />
+                    ) : (
+                      `$${Number(d.producto.precio_individual ?? 0).toFixed(2)}`
+                    )}
+                  </div>
+
                   {esSurtido && (
                     <div className="flex justify-center">
-                      <input type="checkbox" checked={d.recibido} onChange={() => toggleRecibido(d.producto.id)} />
+                      <input
+                        type="checkbox"
+                        checked={d.recibido}
+                        onChange={() => toggleRecibido(d.producto.id)}
+                      />
                     </div>
                   )}
+
                   <div>${subtotal.toFixed(2)}</div>
+
                   <div className="flex justify-center">
-                    <button type="button" onClick={() => eliminarDetalle(d.producto.id)} className="text-red-500 hover:text-red-700">
-                      <Trash size={16}/>
+                    <button
+                      type="button"
+                      onClick={() => eliminarDetalle(d.producto.id)}
+                      className="text-red-500 hover:text-red-700"
+                    >
+                      <Trash size={16} />
                     </button>
                   </div>
                 </div>
@@ -375,32 +585,56 @@ const PedidoModal: React.FC<Props> = ({ pedido, onClose, onGuardado }) => {
             })}
           </div>
 
-          <div className="text-right font-semibold text-gray-700 mt-2">Total: ${total.toFixed(2)}</div>
+          <div className="text-right font-semibold text-gray-700 mt-2">
+            Total: ${total.toFixed(2)}
+          </div>
 
           {/* Botones */}
-          <div className="flex justify-end gap-3 mt-4">
-            <button type="button" onClick={onClose} className="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300">Cancelar</button>
+          <div className="flex justify-end gap-3 mt-4 flex-wrap">
+            <button type="button" onClick={onClose} className="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300">
+              Cancelar
+            </button>
 
             {pedido && esPendiente && (
-              <button type="button" onClick={() => handleSubmit(undefined, "SURTIDO")} className="px-4 py-2 rounded bg-yellow-500 text-white hover:bg-yellow-600">Marcar SURTIDO</button>
+              <button
+                type="button"
+                onClick={() => handleSubmit(undefined, "SURTIDO")}
+                className="px-4 py-2 rounded bg-yellow-500 text-white hover:bg-yellow-600"
+              >
+                Marcar SURTIDO
+              </button>
             )}
 
             {pedido && esSurtido && (
-              <button type="button" onClick={() => handleSubmit(undefined, "ENTREGADO")} className="px-4 py-2 rounded bg-green-500 text-white hover:bg-green-600">Marcar ENTREGADO</button>
+              <button
+                type="button"
+                onClick={() => handleSubmit(undefined, "ENTREGADO")}
+                className="px-4 py-2 rounded bg-green-500 text-white hover:bg-green-600"
+              >
+                Marcar ENTREGADO
+              </button>
             )}
 
-            <button type="submit" className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700">
+            <button
+              type="submit"
+              className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700"
+            >
               Guardar
             </button>
           </div>
         </form>
 
         {mostrarProductoModal && (
-          <ProductoModal producto={productoParaEditar} onClose={() => setMostrarProductoModal(false)} onGuardado={onProductoGuardado} />
+          <ProductoModal
+            producto={productoParaEditar}
+            onClose={() => setMostrarProductoModal(false)}
+            onGuardado={onProductoGuardado}
+          />
         )}
       </div>
     </div>
   );
+
 };
 
 export default PedidoModal;

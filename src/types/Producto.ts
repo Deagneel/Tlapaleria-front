@@ -5,7 +5,8 @@ export interface Producto {
   codigo_barras: string;
   costo: number;
   precio: number;           
-  precio_individual: number; 
+  precio_individual?: number;
+  precioIndividual?: number;
   existencia: number;
   existencia_min: number;
   unidad: string;
