@@ -13,7 +13,6 @@ const Inventario: React.FC = () => {
   const [productoSeleccionado, setProductoSeleccionado] = useState<Producto | null>(null);
   const [mostrarModal, setMostrarModal] = useState(false);
 
-  // Referencia para mantener el focus en la barra de búsqueda
   const searchRef = useRef<HTMLInputElement>(null);
 
   const cargarProductos = async () => {
@@ -50,7 +49,6 @@ const Inventario: React.FC = () => {
     setMostrarModal(true);
   };
 
-  // Preparación para lector de códigos: captura Enter
   const handleBusquedaKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       // estado 'busqueda' ya está actualizado
@@ -64,7 +62,6 @@ const Inventario: React.FC = () => {
       (p.codigo_barras && p.codigo_barras.includes(busqueda))
   );
 
-  // Mantener focus en la barra para lector
   useEffect(() => {
     searchRef.current?.focus();
   }, []);
@@ -76,7 +73,7 @@ const Inventario: React.FC = () => {
           value={busqueda}
           onChange={setBusqueda}
           onKeyDown={handleBusquedaKeyDown}
-          ref={searchRef} // aseguramos focus
+          ref={searchRef} 
         />
         <button
           onClick={handleNuevo}

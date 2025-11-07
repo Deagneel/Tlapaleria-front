@@ -180,79 +180,93 @@ const PedidoModal: React.FC<Props> = ({ pedido, onClose, onGuardado }) => {
   const actualizarCantidad = (id: number, cantidad: number) => setDetalles(prev => prev.map(d => d.producto.id === id ? { ...d, cantidad } : d));
   const toggleRecibido = (id: number) => setDetalles(prev => prev.map(d => d.producto.id === id ? { ...d, recibido: !d.recibido, marcados: !d.marcados } : d));
 
-  const handleSubmit = async (e?: React.FormEvent, nuevoEstado?: "PENDIENTE" | "SURTIDO" | "ENTREGADO") => {
-    if (e) e.preventDefault();
+  const handleSubmit = async (
+      e?: React.FormEvent,
+      nuevoEstado?: "PENDIENTE" | "SURTIDO" | "ENTREGADO"
+    ) => {
+      if (e) e.preventDefault();
 
-    try {
-      const estadoDestino = nuevoEstado ?? (pedido?.estado || "PENDIENTE");
+      try {
+        const estadoDestino = nuevoEstado ?? (pedido?.estado || "PENDIENTE");
 
-      const pedidoBackend: PedidoDTO = {
-        cliente,
-        total,
-        estado: estadoDestino,
-        detalles: detalles.map(d => {
-          const detalle: DetallePedidoDTO = {
-            id: d.id,
-            producto_id: d.producto.id,
-            cantidad: d.cantidad,
-            precio: d.precio,
-          };
-          if (estadoDestino === "SURTIDO") detalle.recibido = d.recibido;
-          return detalle;
-        }),
-      };
+        // 🔹 si estamos cambiando a SURTIDO o ENTREGADO, sí se sumará existencia
+        const debeSumarExistencia = estadoDestino === "SURTIDO" || estadoDestino === "ENTREGADO";
 
-      if (!pedido?.id) {
-        await crearPedido(pedidoBackend);
-      } else {
-        await actualizarPedido(pedido.id!, pedidoBackend);
-      }
-      
-      // Si estamos pasando a SURTIDO, actualizar productos con existencia
-      if (estadoDestino === "SURTIDO") {
-        for (const d of detalles) {
-          const prodToUpdate: Omit<Producto, "id"> = {
-            clave: d.producto.clave,
-            descripcion: d.producto.descripcion,
-            codigo_barras: d.producto.codigo_barras ?? "",
-            costo: d.precio,
-            precio: d.producto.precio,
-            precio_individual: d.precioIndividualEditable ?? d.producto.precio_individual ?? 0,
-            existencia: (d.producto.existencia ?? 0) + (d.recibido ? d.cantidad : 0),
-            existencia_min: d.producto.existencia_min ?? 0,
-            unidad: d.producto.unidad ?? "",
-            activo: d.producto.activo ?? true,
-          };
-          try { await actualizarProducto(d.producto.id, prodToUpdate); } 
-          catch (err) { console.error("No se pudo actualizar producto", d.producto.id, err); }
+        const pedidoBackend: PedidoDTO = {
+          cliente,
+          total,
+          estado: estadoDestino,
+          detalles: detalles.map((d) => {
+            const detalle: DetallePedidoDTO = {
+              id: d.id,
+              producto_id: d.producto.id,
+              cantidad: d.cantidad,
+              precio: d.precio,
+            };
+            if (estadoDestino === "SURTIDO" || estadoDestino === "ENTREGADO") detalle.recibido = d.recibido;
+            return detalle;
+          }),
+        };
+
+        if (!pedido?.id) {
+          await crearPedido(pedidoBackend);
+        } else {
+          await actualizarPedido(pedido.id!, pedidoBackend);
         }
-      }
 
-      // Si pasamos a ENTREGADO, eliminar productos temporales del pedido actual
-      if (estadoDestino === "ENTREGADO") {
-        const temporalesDelPedido = detalles
-          .map(d => d.producto)
-          .filter(p => p.activo === false);
+        // 🔹 Si estamos pasando a SURTIDO o ENTREGADO, actualizar productos
+        if (debeSumarExistencia) {
+          for (const d of detalles) {
+            if (!d.recibido) continue; // solo productos marcados como recibidos
 
-        for (const prod of temporalesDelPedido) {
-          try {
-            await eliminarProducto(prod.id);
-            console.log(`Producto temporal eliminado: ${prod.descripcion} (${prod.clave})`);
-          } catch (err) {
-            console.error("Error al eliminar producto temporal:", prod.id, err);
+            try {
+              const productoActualizado = productosDisponibles.find((p) => p.id === d.producto.id);
+              const existenciaActual = productoActualizado?.existencia ?? d.producto.existencia ?? 0;
+
+              const prodToUpdate: Omit<Producto, "id"> = {
+                clave: d.producto.clave,
+                descripcion: d.producto.descripcion,
+                codigo_barras: d.producto.codigo_barras ?? "",
+                costo: d.precio,
+                precio: d.precioEditable ?? d.producto.precio,
+                precio_individual: d.precioIndividualEditable ?? d.producto.precio_individual ?? 0,
+                existencia: existenciaActual + d.cantidad, // 🔹 se suma existencia
+                existencia_min: productoActualizado?.existencia_min ?? d.producto.existencia_min ?? 0,
+                unidad: productoActualizado?.unidad ?? d.producto.unidad ?? "",
+                activo: d.producto.activo ?? true,
+              };
+
+              await actualizarProducto(d.producto.id, prodToUpdate);
+            } catch (err) {
+              console.error("No se pudo actualizar producto", d.producto.id, err);
+            }
           }
         }
+
+        // 🔹 Si pasamos a ENTREGADO, eliminar productos temporales
+        if (estadoDestino === "ENTREGADO") {
+          const temporalesDelPedido = detalles
+            .map((d) => d.producto)
+            .filter((p) => p.activo === false);
+
+          for (const prod of temporalesDelPedido) {
+            try {
+              await eliminarProducto(prod.id);
+              console.log(`Producto temporal eliminado: ${prod.descripcion} (${prod.clave})`);
+            } catch (err) {
+              console.error("Error al eliminar producto temporal:", prod.id, err);
+            }
+          }
+        }
+
+        onGuardado();
+        onClose();
+      } catch (error) {
+        console.error("Error al guardar pedido:", error);
+        alert("Ocurrió un error al guardar el pedido.");
       }
+    };
 
-
-      onGuardado();
-      onClose();
-
-    } catch (error) {
-      console.error("Error al guardar pedido:", error);
-      alert("Ocurrió un error al guardar el pedido.");
-    }
-  };
 
   const abrirProductoModalPara = (producto: Producto | null) => {
     setProductoParaEditar(producto);

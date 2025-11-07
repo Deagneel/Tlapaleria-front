@@ -15,8 +15,6 @@ export interface PedidoDTO {
   fecha?: string; 
 }
 
-
-// Este tipo lo usas en PedidoModal para los productos
 export interface Producto {
   id: number;
   clave: string;

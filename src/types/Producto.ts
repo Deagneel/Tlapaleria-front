@@ -7,8 +7,8 @@ export interface Producto {
   precio: number;           
   precio_individual?: number;
   precioIndividual?: number;
-  existencia: number;
-  existencia_min: number;
+  existencia?: number;       
+  existencia_min?: number;  
   unidad: string;
   activo: boolean;
 }

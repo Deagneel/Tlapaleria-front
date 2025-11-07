@@ -12,7 +12,7 @@ export interface ProductoDTO {
 export interface DetallePedidoFullDTO {
   id?: number;
   producto_id: number;
-  producto: ProductoDTO; // <-- aquí está la info completa
+  producto: ProductoDTO; 
   cantidad: number;
   precio: number;
   recibido?: boolean;

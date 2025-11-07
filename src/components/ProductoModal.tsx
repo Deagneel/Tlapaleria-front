@@ -22,13 +22,11 @@ const ProductoModal: React.FC<Props> = ({ producto, onClose, onGuardado }) => {
     activo: true,
   });
 
-  // Captura de lector de código de barras (solo si el modal está visible)
   useEffect(() => {
     let buffer = "";
     let timer: number;
 
     const handleKeyPress = (e: KeyboardEvent) => {
-      // No interferir si el usuario escribe dentro de un input
       if ((e.target as HTMLElement).tagName === "INPUT") return;
 
       if (e.key === "Enter") {

@@ -33,3 +33,9 @@ export const obtenerPedidoCompleto = async (id: number) => {
   const { data } = await axios.get(url);
   return data;
 };
+
+export const obtenerProductoPorId = async (id: number) => {
+  const { data } = await axios.get(`${API_URL}/${id}`);
+  return data;
+};
+

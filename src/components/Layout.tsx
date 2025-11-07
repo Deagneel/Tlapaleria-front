@@ -37,9 +37,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         </nav>
       </aside>
 
-      {/* Main content */}
       <main className="flex-1 flex flex-col overflow-hidden">
-        {/* Topbar */}
         <header className="flex items-center justify-between bg-white shadow px-4 py-3 border-b sticky top-0 z-10">
           <div className="flex items-center gap-2">
             <button className="md:hidden p-2 rounded hover:bg-gray-100">
@@ -49,7 +47,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           </div>
         </header>
 
-        {/* Content */}
         <div className="flex-1 overflow-y-auto p-6">{children}</div>
       </main>
     </div>

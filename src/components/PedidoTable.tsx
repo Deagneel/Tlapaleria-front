@@ -53,7 +53,6 @@ const PedidoTable: React.FC<Props> = ({ pedidos, onEditar, onEliminar, onCambiar
                   Eliminar
                 </button>
 
-                {/* Botón de avance de estado */}
                 {pedido.estado === "PENDIENTE" && (
                   <button
                     onClick={() => onCambiarEstado(pedido, "SURTIDO")}

@@ -13,7 +13,7 @@ const SearchBar = forwardRef<HTMLInputElement, Props>(
       <div className="relative w-full max-w-md">
         <Search className="absolute left-3 top-2.5 text-gray-400" size={18} />
         <input
-          ref={ref} // <-- el ref se pasa aquí
+          ref={ref}
           type="text"
           placeholder="Buscar..."
           value={value}

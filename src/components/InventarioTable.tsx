@@ -7,7 +7,7 @@ interface Props {
   productos: Producto[];
   onEditar: (producto: Producto) => void;
   onEliminar: (id: number) => void;
-  busqueda: string; // barra de búsqueda actual
+  busqueda: string; 
 }
 
 const ROW_HEIGHT = 50;
@@ -21,7 +21,6 @@ const InventarioTable: React.FC<Props> = ({ productos, onEditar, onEliminar, bus
   const [filtroEstado, setFiltroEstado] = useState<string>("Todos");
   const [ordenAscendente, setOrdenAscendente] = useState<boolean | null>(null); // null = sin ordenar
 
-  // Determinar categoría por clave
   const categoriaPorClave = (clave: string) => {
     if (!clave) return "Otros";
     const letra = clave[0].toUpperCase();
@@ -30,14 +29,13 @@ const InventarioTable: React.FC<Props> = ({ productos, onEditar, onEliminar, bus
     return "Otros";
   };
 
-  // Productos filtrados y ordenados
   const productosFiltrados = useMemo(() => {
     const filtrados = productos
       .filter((p) => filtroCategoria === "Todos" || categoriaPorClave(p.clave) === filtroCategoria)
       .filter((p) => {
-        if (filtroEstado === "Disponible") return p.existencia > 0;
-        if (filtroEstado === "Agotado") return p.existencia <= 0;
-        if (filtroEstado === "Para pedir") return p.existencia <= p.existencia_min;
+        if (filtroEstado === "Disponible") return (p.existencia ?? 0) > 0;
+        if (filtroEstado === "Agotado") return (p.existencia ?? 0) <= 0;
+        if (filtroEstado === "Para pedir") return (p.existencia ?? 0) <= (p.existencia_min ?? 0);
         return true;
       })
       .filter((p) => {
@@ -79,14 +77,12 @@ const InventarioTable: React.FC<Props> = ({ productos, onEditar, onEliminar, bus
     setDetallesAbiertos(null);
   };
 
-  // Reiniciar página si filtros o búsqueda cambian
   useEffect(() => {
     setPaginaActual(1);
   }, [filtroCategoria, filtroEstado, busqueda, pageSize]);
 
   return (
     <div className="flex flex-col h-screen bg-white shadow rounded-lg border border-gray-200">
-      {/* Filtros */}
       <div className="flex gap-4 px-4 py-2 border-b border-gray-200 flex-shrink-0 bg-white">
         <div className="flex items-center gap-2">
           <label>Categoría:</label>
@@ -133,7 +129,6 @@ const InventarioTable: React.FC<Props> = ({ productos, onEditar, onEliminar, bus
         </div>
       </div>
 
-      {/* Encabezado de tabla */}
       <div
         className="grid px-4 py-2 bg-blue-600 text-white font-semibold flex-shrink-0"
         style={{ gridTemplateColumns: "1fr 3fr 1fr 1fr 1fr 1fr" }}

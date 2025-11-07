@@ -92,7 +92,6 @@ const Pedidos: React.FC = () => {
 
   return (
     <Layout>
-      {/* Barra superior */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
         <SearchBar
           value={busqueda}
@@ -108,7 +107,6 @@ const Pedidos: React.FC = () => {
         </button>
       </div>
 
-      {/* Filtros */}
       <div className="flex gap-4 flex-wrap mb-4">
         <div className="flex items-center gap-2">
           <label>Estado:</label>
@@ -145,7 +143,6 @@ const Pedidos: React.FC = () => {
         </div>
       </div>
 
-      {/* Tabla de pedidos */}
       <PedidoTable
         pedidos={pedidosFiltrados}
         onEditar={handleEditar}
@@ -155,7 +152,7 @@ const Pedidos: React.FC = () => {
 
       {mostrarModal && (
         <PedidoModal
-          pedido={pedidoSeleccionado} // ahora es PedidoFullDTO
+          pedido={pedidoSeleccionado} 
           onClose={() => setMostrarModal(false)}
           onGuardado={cargarPedidos}
         />
