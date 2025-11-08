@@ -7,7 +7,7 @@ interface Props {
   productos: Producto[];
   onEditar: (producto: Producto) => void;
   onEliminar: (id: number) => void;
-  onAgregarAPedido: (producto: Producto) => void; // nueva función
+  onAgregarAPedido: (producto: Producto) => void; 
   busqueda: string;
 }
 
@@ -83,8 +83,8 @@ const InventarioTable: React.FC<Props> = ({ productos, onEditar, onEliminar, onA
   }, [filtroCategoria, filtroEstado, busqueda, pageSize]);
 
   return (
-    <div className="flex flex-col h-screen bg-white shadow rounded-lg border border-gray-200">
-      <div className="flex gap-4 px-4 py-2 border-b border-gray-200 flex-shrink-0 bg-white">
+    <div className="flex flex-col h-screen bg-gray-50 shadow rounded-lg border border-gray-200">
+      <div className="flex gap-4 px-4 py-2 border-b border-gray-200 flex-shrink-0 bg-gray-50">
         <div className="flex items-center gap-2">
           <label>Categoría:</label>
           <select
@@ -119,7 +119,7 @@ const InventarioTable: React.FC<Props> = ({ productos, onEditar, onEliminar, onA
             onClick={() =>
               setOrdenAscendente(ordenAscendente === null ? true : ordenAscendente ? false : null)
             }
-            className="border rounded px-2 py-1 bg-white text-gray-800 hover:bg-gray-200"
+            className="border rounded border-gray-200 px-2 py-1 bg-white text-gray-800 hover:bg-gray-200"
           >
             {ordenAscendente === null
               ? "Sin ordenar"
@@ -142,7 +142,7 @@ const InventarioTable: React.FC<Props> = ({ productos, onEditar, onEliminar, onA
         <div className="text-center">Acciones</div>
       </div>
 
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 overflow-hidden bg-gray-50">
         {productosFiltrados.length === 0 ? (
           <p className="text-gray-500 mt-6 text-center">No hay productos que coincidan.</p>
         ) : (
@@ -221,7 +221,7 @@ const InventarioTable: React.FC<Props> = ({ productos, onEditar, onEliminar, onA
         )}
       </div>
 
-      <div className="flex justify-between items-center px-4 py-3 border-t border-gray-200 flex-shrink-0">
+      <div className="flex justify-between bg-gray-50 items-center px-4 py-3 border-t border-gray-200 flex-shrink-0">
         <div className="flex items-center gap-2">
           <span>Página:</span>
           <button

@@ -73,9 +73,7 @@ const Inventario: React.FC = () => {
     searchRef.current?.focus();
   }, []);
 
-  // ============================
-  // FUNCIONALIDAD AGREGAR A PEDIDO
-  // ============================
+
   const handleAgregarAPedido = async (producto: Producto) => {
     setProductoParaPedido(producto);
     try {
@@ -149,7 +147,7 @@ const Inventario: React.FC = () => {
         productos={productosFiltrados}
         onEditar={handleEditar}
         onEliminar={handleEliminar}
-        onAgregarAPedido={handleAgregarAPedido} // ✅ agregado
+        onAgregarAPedido={handleAgregarAPedido} 
         busqueda={busqueda}
       />
 

@@ -76,19 +76,23 @@ const Pedidos: React.FC = () => {
   };
 
   const pedidosFiltrados = useMemo(() => {
-    return pedidos
-      .filter(p =>filtroEstado === "Todos" ||p.estado?.toLowerCase() === filtroEstado.toLowerCase())
-      .filter(p => p.cliente.toLowerCase().includes(busqueda.toLowerCase()))
-      .filter(p => {
+    const filtrados = pedidos
+      .filter(
+        (p) =>
+          filtroEstado === "Todos" ||
+          p.estado?.toLowerCase() === filtroEstado.toLowerCase()
+      )
+      .filter((p) => p.cliente.toLowerCase().includes(busqueda.toLowerCase()))
+      .filter((p) => {
         if (!p.fecha) return false;
 
-        // Convertimos a fecha local (sin hora)
         const fechaPedido = new Date(p.fecha);
         const fechaPedidoLocal = new Date(
           fechaPedido.getFullYear(),
           fechaPedido.getMonth(),
           fechaPedido.getDate()
         );
+
         const inicio = fechaInicio ? new Date(fechaInicio) : null;
         const fin = fechaFin ? new Date(fechaFin) : null;
 
@@ -99,12 +103,33 @@ const Pedidos: React.FC = () => {
         const finLocal = fin
           ? new Date(fin.getFullYear(), fin.getMonth(), fin.getDate())
           : null;
+
         if (inicioLocal && fechaPedidoLocal < inicioLocal) return false;
         if (finLocal && fechaPedidoLocal > finLocal) return false;
 
         return true;
       });
+
+    const orden: Record<string, number> = {
+      PENDIENTE: 1,
+      SURTIDO: 2,
+      ENTREGADO: 3,
+    };
+
+      return filtrados.sort((a, b) => {
+      const estadoA = a.estado?.toUpperCase() || "";
+      const estadoB = b.estado?.toUpperCase() || "";
+      const ordenEstado = (orden[estadoA] || 99) - (orden[estadoB] || 99);
+
+      if (ordenEstado !== 0) return ordenEstado;
+
+      const fechaA = a.fecha ? new Date(a.fecha).getTime() : 0;
+      const fechaB = b.fecha ? new Date(b.fecha).getTime() : 0;
+      return fechaB - fechaA;
+    });
+
   }, [pedidos, busqueda, filtroEstado, fechaInicio, fechaFin]);
+
 
 
   useEffect(() => { searchRef.current?.focus(); }, []);

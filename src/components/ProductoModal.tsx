@@ -135,7 +135,7 @@ const ProductoModal: React.FC<Props> = ({ producto, onClose, onGuardado }) => {
                   onChange={handleChange}
                   placeholder="Costo"
                   required
-                  className="input"
+                  className="input no-spin"
                 />
               </div>
 
@@ -148,7 +148,7 @@ const ProductoModal: React.FC<Props> = ({ producto, onClose, onGuardado }) => {
                   onChange={handleChange}
                   placeholder="Precio Caja"
                   required
-                  className="input"
+                  className="input no-spin"
                 />
               </div>
 
@@ -161,7 +161,7 @@ const ProductoModal: React.FC<Props> = ({ producto, onClose, onGuardado }) => {
                   onChange={handleChange}
                   placeholder="Precio Individual"
                   required
-                  className="input"
+                  className="input no-spin"
                 />
               </div>
             </div>

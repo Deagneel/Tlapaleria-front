@@ -10,7 +10,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   return (
     <div className="flex h-screen bg-gray-100 text-gray-800">
       {/* Sidebar */}
-      <aside className="w-64 bg-white shadow-lg hidden md:flex flex-col">
+      <aside className="w-64 bg-gray-50 shadow-lg hidden md:flex flex-col">
         <div className="flex items-center gap-2 px-6 py-4 border-b">
           <Package className="text-blue-600" size={24} />
           <h1 className="text-lg font-semibold text-blue-600">Tlapalería Leo</h1>
@@ -38,7 +38,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       </aside>
 
       <main className="flex-1 flex flex-col overflow-hidden">
-        <header className="flex items-center justify-between bg-white shadow px-4 py-3 border-b sticky top-0 z-10">
+        <header className="flex items-center justify-between bg-gray-50 shadow px-4 py-3 border-b sticky top-0 z-10">
           <div className="flex items-center gap-2">
             <button className="md:hidden p-2 rounded hover:bg-gray-100">
               <Menu size={20} />

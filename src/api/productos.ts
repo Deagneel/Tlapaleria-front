@@ -2,7 +2,6 @@ import type { Producto } from "../types/Producto";
 
 const API_URL = "http://localhost:8080/api/productos";
 
-// Tipo que representa el producto recibido del backend
 interface ProductoBackend {
   id: number;
   clave: string;
@@ -10,14 +9,13 @@ interface ProductoBackend {
   codigo_barras?: string | null;
   costo?: number | null;
   precio?: number | null;
-  precioIndividual?: number | null; // ⚠ nombre del backend
+  precioIndividual?: number | null; 
   existencia?: number | null;
   existencia_min?: number | null;
   unidad?: string | null;
   activo?: boolean | null;
 }
 
-// Mapear datos del backend a frontend
 const mapearProducto = (p: ProductoBackend): Producto => ({
   id: p.id,
   clave: p.clave,
@@ -39,7 +37,6 @@ export const obtenerProductos = async (): Promise<Producto[]> => {
   return data.map(mapearProducto);
 };
 
-// Mapear producto de frontend a formato backend
 const mapearAFormatoBackend = (producto: Omit<Producto, "id">) => ({
   clave: producto.clave,
   descripcion: producto.descripcion ?? "",

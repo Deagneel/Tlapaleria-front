@@ -64,7 +64,6 @@ const PedidoModal: React.FC<Props> = ({ pedido, onClose, onGuardado }) => {
     cargarPedidosPendientes();
   }, []);
 
-  // Carga productos disponibles
   useEffect(() => {
     const cargar = async () => {
       const data = await obtenerProductos();
@@ -77,7 +76,7 @@ const PedidoModal: React.FC<Props> = ({ pedido, onClose, onGuardado }) => {
     const cargarPedidoCompleto = async () => {
       if (!pedido?.id) return;
       try {
-        const data: PedidoFullDTO = await obtenerPedidoCompleto(pedido.id); // backend correcto
+        const data: PedidoFullDTO = await obtenerPedidoCompleto(pedido.id); 
         setCliente(data.cliente);
 
         const detallesTemp: DetalleTemp[] = (data.detalles || []).map((d: DetallePedidoFullDTO) => {
@@ -118,9 +117,6 @@ const PedidoModal: React.FC<Props> = ({ pedido, onClose, onGuardado }) => {
   }, [pedido]);
 
 
-
-
-  // Cálculo de total
   useEffect(() => {
     const suma = detalles.reduce((acc, d) => acc + d.cantidad * d.precio, 0);
     setTotal(suma);
@@ -134,7 +130,6 @@ const PedidoModal: React.FC<Props> = ({ pedido, onClose, onGuardado }) => {
 
   const puedeAgregarProducto = (prod: Producto) => !detalles.some(d => d.producto.id === prod.id);
 
-  // Agregar detalle
   const agregarDetalle = () => {
     const productoAAgregar =
       productoSeleccionado ??
@@ -202,10 +197,9 @@ const PedidoModal: React.FC<Props> = ({ pedido, onClose, onGuardado }) => {
   const toggleRecibido = (id: number) => setDetalles(prev => prev.map(d => d.producto.id === id ? { ...d, recibido: !d.recibido, marcados: !d.marcados } : d));
   
   const handleAgregarAotroPedido = async (producto: Producto) => {
-  // abrimos modal y cargamos pedidos pendientes
     setProductoParaMover(producto);
     try {
-      const all = await apiObtenerPedidos(); // obtiene resumen de pedidos
+      const all = await apiObtenerPedidos();
       const pendientes = all.filter(p => (p.estado ?? "").toUpperCase() === "PENDIENTE");
       setPedidosPendientes(pendientes.filter((p): p is PedidoDTO & { id: number } => p.id !== undefined));
       setPedidoDestinoId(pendientes.length && pendientes[0].id !== undefined ? pendientes[0].id : null);
@@ -229,7 +223,6 @@ const PedidoModal: React.FC<Props> = ({ pedido, onClose, onGuardado }) => {
 
       if (yaExiste) return alert("El producto ya existe en el pedido seleccionado.");
 
-      // 🔹 Preguntar cantidad al usuario
       const cantidadInput = window.prompt(
         `¿Cuántas unidades de "${productoParaMover.descripcion}" deseas agregar?`,
         "1"
@@ -292,22 +285,19 @@ const PedidoModal: React.FC<Props> = ({ pedido, onClose, onGuardado }) => {
         await actualizarPedido(pedido.id!, pedidoBackend);
       }
 
-      // 🔹 Si estamos pasando a SURTIDO o ENTREGADO, actualizar productos
       if (debeSumarExistencia) {
-        // 🔹 Manejo de actualización de productos según el estado
         for (const d of detalles) {
-          if (!d.recibido) continue; // solo productos marcados como recibidos
+          if (!d.recibido) continue; 
 
           try {
             const productoActualizado = productosDisponibles.find(p => p.id === d.producto.id);
             const existenciaActual = productoActualizado?.existencia ?? d.producto.existencia ?? 0;
 
-            // 🔸 Definimos si debe sumar existencias o no
             const debeSumarExistencia = nuevoEstado === "ENTREGADO";
 
             const nuevaExistencia = debeSumarExistencia
-              ? existenciaActual + d.cantidad // solo cuando pasa a ENTREGADO
-              : existenciaActual; // en GUARDAR o SURTIDO no suma
+              ? existenciaActual + d.cantidad 
+              : existenciaActual; 
 
             const prodToUpdate: Omit<Producto, "id"> = {
               clave: d.producto.clave,
@@ -330,7 +320,6 @@ const PedidoModal: React.FC<Props> = ({ pedido, onClose, onGuardado }) => {
 
       }
 
-      // 🔹 Si pasamos a ENTREGADO, eliminar productos temporales
       if (estadoDestino === "ENTREGADO") {
         const temporalesDelPedido = detalles
           .map((d) => d.producto)
@@ -363,7 +352,6 @@ const PedidoModal: React.FC<Props> = ({ pedido, onClose, onGuardado }) => {
 
   const onProductoGuardado = async () => {
     try {
-      // Si el producto que se acaba de editar estaba inactivo, forzamos activo = true
       if (productoParaEditar && productoParaEditar.activo === false) {
         await actualizarProducto(productoParaEditar.id, {
           ...productoParaEditar,
@@ -371,11 +359,9 @@ const PedidoModal: React.FC<Props> = ({ pedido, onClose, onGuardado }) => {
         });
       }
 
-      // Refrescar lista de productos después de guardar
       const data = await obtenerProductos();
       setProductosDisponibles(data);
 
-      // Actualizar detalles si el producto fue modificado
       setDetalles(prev =>
         prev.map(d => {
           const prod = data.find(p => p.id === d.producto.id);
@@ -392,12 +378,9 @@ const PedidoModal: React.FC<Props> = ({ pedido, onClose, onGuardado }) => {
   };
 
 
-  // ----------------------
-  // Render
-  // ----------------------
   return (
   <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-    <div className="bg-white rounded-xl shadow-xl w-full max-w-5xl p-6">
+    <div className="bg-gray-50 rounded-xl shadow-xl w-full max-w-5xl p-6">
       <h2 className="text-xl font-semibold mb-4 text-gray-700">
         {pedido ? `Editar Pedido (${pedido.cliente})` : "Nuevo Pedido"}
       </h2>
@@ -431,7 +414,7 @@ const PedidoModal: React.FC<Props> = ({ pedido, onClose, onGuardado }) => {
                 value={textoBusqueda}
                 onChange={(e) => setTextoBusqueda(e.target.value)}
                 placeholder="Descripción, clave o código de barras"
-                className="border rounded p-2 w-full"
+                className="w-full pl-5 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900 placeholder-gray-400"
               />
               {productosFiltrados.length > 1 && (
                 <select
@@ -500,10 +483,10 @@ const PedidoModal: React.FC<Props> = ({ pedido, onClose, onGuardado }) => {
             <div>Clave</div>
             <div>Producto</div>
             <div>Cantidad</div>
-            <div>Costo actual</div>
+            <div>Costo</div>
             <div>Nuevo costo</div>
-            <div>Precio actual</div>
-            <div>Precio individual</div>
+            <div>Precio</div>
+            <div>Unidad</div>
             {esSurtido && <div>Recibido</div>}
             <div>Subtotal</div>
             <div className="text-center">Acciones</div>
@@ -539,7 +522,7 @@ const PedidoModal: React.FC<Props> = ({ pedido, onClose, onGuardado }) => {
               <div
                 key={d.producto.id}
                 className={`grid grid-cols-10 px-4 py-2 border-b items-center text-sm min-w-[900px] ${
-                  d.marcados ? "bg-green-50" : ""
+                  d.marcados ? "bg-blue-100" : ""
                 }`}
               >
                 <div>{d.producto.clave}</div>
@@ -565,7 +548,7 @@ const PedidoModal: React.FC<Props> = ({ pedido, onClose, onGuardado }) => {
                     onChange={(e) =>
                       actualizarCantidad(d.producto.id, Number(e.target.value))
                     }
-                    className="input w-16"
+                    className="input w-16 white-spin"
                   />
                 </div>
 
@@ -591,7 +574,7 @@ const PedidoModal: React.FC<Props> = ({ pedido, onClose, onGuardado }) => {
                             )
                           );
                         }}
-                        className="input w-20"
+                        className="input w-20 no-spin"
                       />
                       <button
                         type="button"
@@ -643,7 +626,7 @@ const PedidoModal: React.FC<Props> = ({ pedido, onClose, onGuardado }) => {
                           )
                         )
                       }
-                      className="input w-24"
+                      className="input w-24 no-spin"
                     />
                   ) : (
                     `$${Number(d.producto.precio ?? 0).toFixed(2)}`
@@ -670,7 +653,7 @@ const PedidoModal: React.FC<Props> = ({ pedido, onClose, onGuardado }) => {
                           )
                         )
                       }
-                      className="input w-24"
+                      className="input w-24 no-spin"
                     />
                   ) : (
                     `$${Number(d.producto.precio_individual ?? 0).toFixed(2)}`
@@ -694,7 +677,7 @@ const PedidoModal: React.FC<Props> = ({ pedido, onClose, onGuardado }) => {
                   <button
                     type="button"
                     onClick={() => eliminarDetalle(d.producto.id)}
-                    className="text-red-500 hover:text-red-700"
+                    className="text-red-500 hover:text-red-700 bg-gray-200"
                   >
                     <Trash size={16} />
                   </button>
@@ -704,7 +687,7 @@ const PedidoModal: React.FC<Props> = ({ pedido, onClose, onGuardado }) => {
                     <button
                       type="button"
                       onClick={() => handleAgregarAotroPedido(d.producto)}
-                      className="text-blue-500 hover:text-blue-700"
+                      className="text-blue-500 hover:text-blue-700 bg-gray-200"
                       title="Agregar a otro pedido pendiente"
                     >
                       <ClipboardPlus size={16} />
