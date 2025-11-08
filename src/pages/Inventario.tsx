@@ -4,7 +4,9 @@ import InventarioTable from "../components/InventarioTable";
 import SearchBar from "../components/SearchBar";
 import ProductoModal from "../components/ProductoModal";
 import { obtenerProductos, eliminarProducto } from "../api/productos";
+import { obtenerPedidos, obtenerPedidoCompleto, agregarProductoAPedido } from "../api/pedidos"; // ajusta según tu API
 import type { Producto } from "../types/Producto";
+import type { PedidoDTO, DetallePedidoDTO } from "../types/Pedido";
 import { PlusCircle } from "lucide-react";
 
 const Inventario: React.FC = () => {
@@ -12,6 +14,11 @@ const Inventario: React.FC = () => {
   const [busqueda, setBusqueda] = useState("");
   const [productoSeleccionado, setProductoSeleccionado] = useState<Producto | null>(null);
   const [mostrarModal, setMostrarModal] = useState(false);
+
+  const [productoParaPedido, setProductoParaPedido] = useState<Producto | null>(null);
+  const [mostrarAgregarAPedido, setMostrarAgregarAPedido] = useState(false);
+  const [pedidosPendientes, setPedidosPendientes] = useState<PedidoDTO[]>([]);
+  const [pedidoDestinoId, setPedidoDestinoId] = useState<number | null>(null);
 
   const searchRef = useRef<HTMLInputElement>(null);
 
@@ -66,6 +73,60 @@ const Inventario: React.FC = () => {
     searchRef.current?.focus();
   }, []);
 
+  // ============================
+  // FUNCIONALIDAD AGREGAR A PEDIDO
+  // ============================
+  const handleAgregarAPedido = async (producto: Producto) => {
+    setProductoParaPedido(producto);
+    try {
+      const all = await obtenerPedidos();
+      const pendientes = all.filter(p => (p.estado ?? "").toUpperCase() === "PENDIENTE");
+      setPedidosPendientes(pendientes.filter((p): p is PedidoDTO & { id: number } => p.id !== undefined));
+      setPedidoDestinoId(pendientes.length && pendientes[0].id !== undefined ? pendientes[0].id : null);
+      setMostrarAgregarAPedido(true);
+    } catch (err) {
+      console.error("Error cargando pedidos pendientes:", err);
+      alert("No se pudieron obtener pedidos pendientes.");
+    }
+  };
+
+  const confirmarAgregarAotroPedido = async () => {
+    if (!productoParaPedido || pedidoDestinoId == null) return alert("Selecciona un pedido destino.");
+
+    try {
+      const pedidoFull = await obtenerPedidoCompleto(pedidoDestinoId);
+      const yaExiste = (pedidoFull.detalles || []).some(
+        (dt: DetallePedidoDTO) => dt.producto_id === productoParaPedido.id
+      );
+
+      if (yaExiste) return alert("El producto ya existe en el pedido seleccionado.");
+
+      const cantidadInput = window.prompt(
+        `¿Cuántas unidades de "${productoParaPedido.descripcion}" deseas agregar?`,
+        "1"
+      );
+      const cantidadNum = Number(cantidadInput);
+      const cantidad = !isNaN(cantidadNum) && cantidadNum > 0 ? cantidadNum : 1;
+
+      const detalle: DetallePedidoDTO = {
+        producto_id: productoParaPedido.id,
+        cantidad,
+        precio: productoParaPedido.costo ?? 0,
+        recibido: false,
+      };
+
+      await agregarProductoAPedido(pedidoDestinoId, detalle);
+      alert(`Se agregaron ${cantidad} unidades de "${productoParaPedido.descripcion}" al pedido.`);
+
+      setMostrarAgregarAPedido(false);
+      setProductoParaPedido(null);
+    } catch (err) {
+      console.error("Error agregando producto al pedido:", err);
+      alert("No se pudo agregar el producto al pedido.");
+    }
+  };
+
+  // ============================
   return (
     <Layout>
       <div className="flex justify-between items-center mb-6">
@@ -88,6 +149,7 @@ const Inventario: React.FC = () => {
         productos={productosFiltrados}
         onEditar={handleEditar}
         onEliminar={handleEliminar}
+        onAgregarAPedido={handleAgregarAPedido} // ✅ agregado
         busqueda={busqueda}
       />
 
@@ -97,6 +159,49 @@ const Inventario: React.FC = () => {
           onClose={() => setMostrarModal(false)}
           onGuardado={cargarProductos}
         />
+      )}
+
+      {mostrarAgregarAPedido && productoParaPedido && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-4 w-full max-w-md">
+            <h3 className="font-semibold mb-2">Seleccionar pedido pendiente</h3>
+
+            {pedidosPendientes.length === 0 ? (
+              <p>No hay pedidos pendientes disponibles.</p>
+            ) : (
+              <>
+                <select
+                  className="border rounded p-2 w-full mb-3"
+                  value={pedidoDestinoId ?? ""}
+                  onChange={(e) => setPedidoDestinoId(Number(e.target.value))}
+                >
+                  {pedidosPendientes.map(p => (
+                    <option key={p.id} value={p.id}>
+                      {p.cliente} — {p.fecha ? new Date(p.fecha).toLocaleString() : ""}
+                    </option>
+                  ))}
+                </select>
+
+                <div className="flex justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => { setMostrarAgregarAPedido(false); setProductoParaPedido(null); }}
+                    className="px-3 py-1 rounded bg-gray-200 hover:bg-gray-300"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={confirmarAgregarAotroPedido}
+                    className="px-3 py-1 rounded bg-blue-600 text-white hover:bg-blue-700"
+                  >
+                    Agregar
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
       )}
     </Layout>
   );

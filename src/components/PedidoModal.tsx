@@ -8,6 +8,11 @@ import type { Producto } from "../types/Producto";
 import type { PedidoFullDTO} from "../types/PedidoDTO";
 import { obtenerPedidoCompleto } from "../api/pedidos";
 import type { DetallePedidoFullDTO } from "../types/PedidoDTO";
+import { obtenerPedidosPendientes, agregarProductoAPedido } from "../api/pedidos";
+import { ClipboardPlus } from "lucide-react";
+import { obtenerPedidos as apiObtenerPedidos } from "../api/pedidos";
+
+
 
 
 interface Props {
@@ -39,9 +44,25 @@ const PedidoModal: React.FC<Props> = ({ pedido, onClose, onGuardado }) => {
   const [textoBusqueda, setTextoBusqueda] = useState<string>("");
   const [mostrarProductoModal, setMostrarProductoModal] = useState(false);
   const [productoParaEditar, setProductoParaEditar] = useState<Producto | null>(null);
+  const [pedidosPendientes, setPedidosPendientes] = useState<PedidoDTO[]>([]);
+  const [mostrarSeleccionPedidos, setMostrarSeleccionPedidos] = useState(false);
+  const [productoParaMover, setProductoParaMover] = useState<Producto | null>(null);
+  const [pedidoDestinoId, setPedidoDestinoId] = useState<number | null>(null);
 
   const esPendiente = pedido?.estado === "PENDIENTE" || pedido === null;
   const esSurtido = pedido?.estado === "SURTIDO";
+
+  useEffect(() => {
+    const cargarPedidosPendientes = async () => {
+      try {
+        const data = await obtenerPedidosPendientes();
+        setPedidosPendientes(data);
+      } catch (err) {
+        console.error("Error al cargar pedidos pendientes:", err);
+      }
+    };
+    cargarPedidosPendientes();
+  }, []);
 
   // Carga productos disponibles
   useEffect(() => {
@@ -179,93 +200,160 @@ const PedidoModal: React.FC<Props> = ({ pedido, onClose, onGuardado }) => {
   const eliminarDetalle = (productoId: number) => setDetalles(prev => prev.filter(d => d.producto.id !== productoId));
   const actualizarCantidad = (id: number, cantidad: number) => setDetalles(prev => prev.map(d => d.producto.id === id ? { ...d, cantidad } : d));
   const toggleRecibido = (id: number) => setDetalles(prev => prev.map(d => d.producto.id === id ? { ...d, recibido: !d.recibido, marcados: !d.marcados } : d));
+  
+  const handleAgregarAotroPedido = async (producto: Producto) => {
+  // abrimos modal y cargamos pedidos pendientes
+    setProductoParaMover(producto);
+    try {
+      const all = await apiObtenerPedidos(); // obtiene resumen de pedidos
+      const pendientes = all.filter(p => (p.estado ?? "").toUpperCase() === "PENDIENTE");
+      setPedidosPendientes(pendientes.filter((p): p is PedidoDTO & { id: number } => p.id !== undefined));
+      setPedidoDestinoId(pendientes.length && pendientes[0].id !== undefined ? pendientes[0].id : null);
+      setMostrarSeleccionPedidos(true);
+    } catch (err) {
+      console.error("Error cargando pedidos pendientes:", err);
+      alert("No se pudieron obtener pedidos pendientes.");
+    }
+  };
+
+  const confirmarAgregarAotroPedido = async () => {
+    if (!productoParaMover || pedidoDestinoId == null) {
+      return alert("Selecciona un pedido destino.");
+    }
+
+    try {
+      const pedidoFull = await obtenerPedidoCompleto(pedidoDestinoId);
+      const yaExiste = (pedidoFull.detalles || []).some(
+        (dt: DetallePedidoDTO) => dt.producto_id === productoParaMover.id
+      );
+
+      if (yaExiste) return alert("El producto ya existe en el pedido seleccionado.");
+
+      // 🔹 Preguntar cantidad al usuario
+      const cantidadInput = window.prompt(
+        `¿Cuántas unidades de "${productoParaMover.descripcion}" deseas agregar?`,
+        "1"
+      );
+      const cantidadNum = Number(cantidadInput);
+      const cantidad = !isNaN(cantidadNum) && cantidadNum > 0 ? cantidadNum : 1;
+
+      const detalle = {
+        producto_id: productoParaMover.id,
+        cantidad,
+        precio: productoParaMover.costo ?? 0,
+        recibido: false,
+      };
+
+      await agregarProductoAPedido(pedidoDestinoId, detalle);
+      alert(`Se agregaron ${cantidad} unidades de "${productoParaMover.descripcion}" al pedido.`);
+
+      setMostrarSeleccionPedidos(false);
+      setProductoParaMover(null);
+      setPedidoDestinoId(null);
+      onGuardado();
+    } catch (err) {
+      console.error("Error agregando producto al pedido:", err);
+      alert("No se pudo agregar el producto al pedido.");
+    }
+  };
+
 
   const handleSubmit = async (
-      e?: React.FormEvent,
-      nuevoEstado?: "PENDIENTE" | "SURTIDO" | "ENTREGADO"
-    ) => {
-      if (e) e.preventDefault();
+    e?: React.FormEvent,
+    nuevoEstado?: "PENDIENTE" | "SURTIDO" | "ENTREGADO"
+  ) => {
+    if (e) e.preventDefault();
 
-      try {
-        const estadoDestino = nuevoEstado ?? (pedido?.estado || "PENDIENTE");
+    try {
+      const estadoDestino = nuevoEstado ?? (pedido?.estado || "PENDIENTE");
 
-        // 🔹 si estamos cambiando a SURTIDO o ENTREGADO, sí se sumará existencia
-        const debeSumarExistencia = estadoDestino === "SURTIDO" || estadoDestino === "ENTREGADO";
+      // 🔹 si estamos cambiando a SURTIDO o ENTREGADO, sí se sumará existencia
+      const debeSumarExistencia = estadoDestino === "SURTIDO" || estadoDestino === "ENTREGADO";
 
-        const pedidoBackend: PedidoDTO = {
-          cliente,
-          total,
-          estado: estadoDestino,
-          detalles: detalles.map((d) => {
-            const detalle: DetallePedidoDTO = {
-              id: d.id,
-              producto_id: d.producto.id,
-              cantidad: d.cantidad,
-              precio: d.precio,
-            };
-            if (estadoDestino === "SURTIDO" || estadoDestino === "ENTREGADO") detalle.recibido = d.recibido;
-            return detalle;
-          }),
-        };
+      const pedidoBackend: PedidoDTO = {
+        cliente,
+        total,
+        estado: estadoDestino,
+        detalles: detalles.map((d) => {
+          const detalle: DetallePedidoDTO = {
+            id: d.id,
+            producto_id: d.producto.id,
+            cantidad: d.cantidad,
+            precio: d.precio,
+          };
+          if (estadoDestino === "SURTIDO" || estadoDestino === "ENTREGADO") detalle.recibido = d.recibido;
+          return detalle;
+        }),
+      };
 
-        if (!pedido?.id) {
-          await crearPedido(pedidoBackend);
-        } else {
-          await actualizarPedido(pedido.id!, pedidoBackend);
-        }
-
-        // 🔹 Si estamos pasando a SURTIDO o ENTREGADO, actualizar productos
-        if (debeSumarExistencia) {
-          for (const d of detalles) {
-            if (!d.recibido) continue; // solo productos marcados como recibidos
-
-            try {
-              const productoActualizado = productosDisponibles.find((p) => p.id === d.producto.id);
-              const existenciaActual = productoActualizado?.existencia ?? d.producto.existencia ?? 0;
-
-              const prodToUpdate: Omit<Producto, "id"> = {
-                clave: d.producto.clave,
-                descripcion: d.producto.descripcion,
-                codigo_barras: d.producto.codigo_barras ?? "",
-                costo: d.precio,
-                precio: d.precioEditable ?? d.producto.precio,
-                precio_individual: d.precioIndividualEditable ?? d.producto.precio_individual ?? 0,
-                existencia: existenciaActual + d.cantidad, // 🔹 se suma existencia
-                existencia_min: productoActualizado?.existencia_min ?? d.producto.existencia_min ?? 0,
-                unidad: productoActualizado?.unidad ?? d.producto.unidad ?? "",
-                activo: d.producto.activo ?? true,
-              };
-
-              await actualizarProducto(d.producto.id, prodToUpdate);
-            } catch (err) {
-              console.error("No se pudo actualizar producto", d.producto.id, err);
-            }
-          }
-        }
-
-        // 🔹 Si pasamos a ENTREGADO, eliminar productos temporales
-        if (estadoDestino === "ENTREGADO") {
-          const temporalesDelPedido = detalles
-            .map((d) => d.producto)
-            .filter((p) => p.activo === false);
-
-          for (const prod of temporalesDelPedido) {
-            try {
-              await eliminarProducto(prod.id);
-              console.log(`Producto temporal eliminado: ${prod.descripcion} (${prod.clave})`);
-            } catch (err) {
-              console.error("Error al eliminar producto temporal:", prod.id, err);
-            }
-          }
-        }
-
-        onGuardado();
-        onClose();
-      } catch (error) {
-        console.error("Error al guardar pedido:", error);
-        alert("Ocurrió un error al guardar el pedido.");
+      if (!pedido?.id) {
+        await crearPedido(pedidoBackend);
+      } else {
+        await actualizarPedido(pedido.id!, pedidoBackend);
       }
-    };
+
+      // 🔹 Si estamos pasando a SURTIDO o ENTREGADO, actualizar productos
+      if (debeSumarExistencia) {
+        // 🔹 Manejo de actualización de productos según el estado
+        for (const d of detalles) {
+          if (!d.recibido) continue; // solo productos marcados como recibidos
+
+          try {
+            const productoActualizado = productosDisponibles.find(p => p.id === d.producto.id);
+            const existenciaActual = productoActualizado?.existencia ?? d.producto.existencia ?? 0;
+
+            // 🔸 Definimos si debe sumar existencias o no
+            const debeSumarExistencia = nuevoEstado === "ENTREGADO";
+
+            const nuevaExistencia = debeSumarExistencia
+              ? existenciaActual + d.cantidad // solo cuando pasa a ENTREGADO
+              : existenciaActual; // en GUARDAR o SURTIDO no suma
+
+            const prodToUpdate: Omit<Producto, "id"> = {
+              clave: d.producto.clave,
+              descripcion: d.producto.descripcion,
+              codigo_barras: d.producto.codigo_barras ?? "",
+              costo: d.precio,
+              precio: d.precioEditable ?? d.producto.precio,
+              precio_individual: d.precioIndividualEditable ?? d.producto.precio_individual ?? 0,
+              existencia: nuevaExistencia,
+              existencia_min: productoActualizado?.existencia_min ?? d.producto.existencia_min ?? 0,
+              unidad: productoActualizado?.unidad ?? d.producto.unidad ?? "",
+              activo: d.producto.activo ?? true,
+            };
+
+            await actualizarProducto(d.producto.id, prodToUpdate);
+          } catch (err) {
+            console.error("No se pudo actualizar producto", d.producto.id, err);
+          }
+        }
+
+      }
+
+      // 🔹 Si pasamos a ENTREGADO, eliminar productos temporales
+      if (estadoDestino === "ENTREGADO") {
+        const temporalesDelPedido = detalles
+          .map((d) => d.producto)
+          .filter((p) => p.activo === false);
+
+        for (const prod of temporalesDelPedido) {
+          try {
+            await eliminarProducto(prod.id);
+            console.log(`Producto temporal eliminado: ${prod.descripcion} (${prod.clave})`);
+          } catch (err) {
+            console.error("Error al eliminar producto temporal:", prod.id, err);
+          }
+        }
+      }
+
+      onGuardado();
+      onClose();
+    } catch (error) {
+      console.error("Error al guardar pedido:", error);
+      alert("Ocurrió un error al guardar el pedido.");
+    }
+  };
+
 
 
   const abrirProductoModalPara = (producto: Producto | null) => {
@@ -308,115 +396,132 @@ const PedidoModal: React.FC<Props> = ({ pedido, onClose, onGuardado }) => {
   // Render
   // ----------------------
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-5xl p-6">
-        <h2 className="text-xl font-semibold mb-4 text-gray-700">
-          {pedido ? `Editar Pedido (${pedido.cliente})` : "Nuevo Pedido"}
-        </h2>
+  <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+    <div className="bg-white rounded-xl shadow-xl w-full max-w-5xl p-6">
+      <h2 className="text-xl font-semibold mb-4 text-gray-700">
+        {pedido ? `Editar Pedido (${pedido.cliente})` : "Nuevo Pedido"}
+      </h2>
 
-        <form onSubmit={e => handleSubmit(e)} className="grid grid-cols-1 gap-4">
-          {/* Cliente y estado */}
-          <div className="flex gap-4 items-end flex-wrap">
+      <form onSubmit={(e) => handleSubmit(e)} className="grid grid-cols-1 gap-4">
+        {/* Cliente y estado */}
+        <div className="flex gap-4 items-end flex-wrap">
+          <div className="flex-1 min-w-[200px]">
+            <label className="block text-gray-700 mb-1">Nombre del Pedido</label>
+            <input
+              type="text"
+              value={cliente}
+              onChange={(e) => setCliente(e.target.value)}
+              required
+              className="input w-full"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="text-gray-700">Estado:</label>
+            <div className="px-3 py-1 border rounded">{pedido?.estado ?? "PENDIENTE"}</div>
+          </div>
+        </div>
+
+        {/* Productos solo si PENDIENTE */}
+        {esPendiente && (
+          <div className="flex flex-wrap gap-2 items-end">
             <div className="flex-1 min-w-[200px]">
-              <label className="block text-gray-700 mb-1">Nombre del Pedido</label>
-              <input type="text" value={cliente} onChange={e => setCliente(e.target.value)} required className="input w-full" />
+              <label className="block text-gray-700 mb-1">Buscar producto</label>
+              <input
+                type="text"
+                value={textoBusqueda}
+                onChange={(e) => setTextoBusqueda(e.target.value)}
+                placeholder="Descripción, clave o código de barras"
+                className="border rounded p-2 w-full"
+              />
+              {productosFiltrados.length > 1 && (
+                <select
+                  value={productoSeleccionado?.id || ""}
+                  onChange={(e) =>
+                    setProductoSeleccionado(
+                      productosFiltrados.find((p) => p.id === Number(e.target.value)) || null
+                    )
+                  }
+                  className="border rounded p-2 w-full mt-1 bg-gray-100"
+                >
+                  <option value="">Seleccionar producto</option>
+                  {productosFiltrados.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.descripcion} ({p.clave}) - ${p.costo.toFixed(2)}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
-            <div className="flex items-center gap-2">
-              <label className="text-gray-700">Estado:</label>
-              <div className="px-3 py-1 border rounded">{pedido?.estado ?? "PENDIENTE"}</div>
+
+            <div className="w-24">
+              <label className="block text-gray-700 mb-1">Cantidad</label>
+              <input
+                type="number"
+                min={1}
+                value={cantidadTemp}
+                onChange={(e) => setCantidadTemp(Number(e.target.value))}
+                className="input w-full"
+              />
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={agregarDetalle}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-1"
+              >
+                <Plus size={16} /> Agregar
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  const clave = prompt("Clave del producto:") ?? "";
+                  if (!clave) return;
+                  const descripcion = prompt("Descripción:") ?? "";
+                  if (!descripcion) return;
+                  const cantidadRaw = prompt("Cantidad:", "1") ?? "1";
+                  const cantidad = Number(cantidadRaw) || 1;
+                  const costoRaw = prompt("Costo (opcional):", "0") ?? "0";
+                  const costo = Number(costoRaw) || 0;
+                  agregarProductoTemporal(clave, descripcion, cantidad, costo);
+                }}
+                className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300"
+              >
+                Agregar temporal
+              </button>
             </div>
           </div>
+        )}
 
-          {/* Productos solo si PENDIENTE */}
-          {esPendiente && (
-            <div className="flex flex-wrap gap-2 items-end">
-              <div className="flex-1 min-w-[200px]">
-                <label className="block text-gray-700 mb-1">Buscar producto</label>
-                <input
-                  type="text"
-                  value={textoBusqueda}
-                  onChange={e => setTextoBusqueda(e.target.value)}
-                  placeholder="Descripción, clave o código de barras"
-                  className="border rounded p-2 w-full"
-                />
-                {productosFiltrados.length > 1 && (
-                  <select
-                    value={productoSeleccionado?.id || ""}
-                    onChange={e => setProductoSeleccionado(productosFiltrados.find(p => p.id === Number(e.target.value)) || null)}
-                    className="border rounded p-2 w-full mt-1 bg-gray-100"
-                  >
-                    <option value="">Seleccionar producto</option>
-                    {productosFiltrados.map(p => (
-                      <option key={p.id} value={p.id}>
-                        {p.descripcion} ({p.clave}) - ${p.costo.toFixed(2)}
-                      </option>
-                    ))}
-                  </select>
-                )}
-              </div>
+        {/* Tabla de detalles */}
+        <div className="border rounded-lg overflow-auto max-h-[500px]">
+          <div className="grid grid-cols-10 bg-gray-100 px-4 py-2 font-semibold text-gray-700 text-sm min-w-[900px]">
+            <div>Clave</div>
+            <div>Producto</div>
+            <div>Cantidad</div>
+            <div>Costo actual</div>
+            <div>Nuevo costo</div>
+            <div>Precio actual</div>
+            <div>Precio individual</div>
+            {esSurtido && <div>Recibido</div>}
+            <div>Subtotal</div>
+            <div className="text-center">Acciones</div>
+          </div>
 
-              <div className="w-24">
-                <label className="block text-gray-700 mb-1">Cantidad</label>
-                <input type="number" min={1} value={cantidadTemp} onChange={e => setCantidadTemp(Number(e.target.value))} className="input w-full" />
-              </div>
+          {detalles.map((d) => {
+            const costoOriginal = Number(d.producto.costo ?? 0);
+            const nuevoCosto = Number(d.precio ?? 0);
+            const diffPercent =
+              costoOriginal > 0 ? ((nuevoCosto - costoOriginal) / costoOriginal) * 100 : 0;
+            const subtotal = (nuevoCosto || 0) * (d.cantidad || 0);
+            let diffColor = "";
+            if (Math.abs(diffPercent) >= 10)
+              diffColor = diffPercent > 0 ? "text-green-600" : "text-red-600";
 
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={agregarDetalle}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-1"
-                >
-                  <Plus size={16}/> Agregar
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    const clave = prompt("Clave del producto:") ?? "";
-                    if (!clave) return;
-                    const descripcion = prompt("Descripción:") ?? "";
-                    if (!descripcion) return;
-                    const cantidadRaw = prompt("Cantidad:", "1") ?? "1";
-                    const cantidad = Number(cantidadRaw) || 1;
-                    const costoRaw = prompt("Costo (opcional):", "0") ?? "0";
-                    const costo = Number(costoRaw) || 0;
-                    agregarProductoTemporal(clave, descripcion, cantidad, costo);
-                  }}
-                  className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300"
-                >
-                  Agregar temporal
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Tabla de detalles */}
-          <div className="border rounded-lg overflow-auto max-h-[500px]">
-            <div className="grid grid-cols-10 bg-gray-100 px-4 py-2 font-semibold text-gray-700 text-sm min-w-[900px]">
-              <div>Clave</div>
-              <div>Producto</div>
-              <div>Cantidad</div>
-              <div>Costo actual</div>
-              <div>Nuevo costo</div>
-              <div>Precio actual</div>
-              <div>Precio individual</div>
-              {esSurtido && <div>Recibido</div>}
-              <div>Subtotal</div>
-              <div className="text-center">Acciones</div>
-            </div>
-
-            {detalles.map((d) => {
-              const costoOriginal = Number(d.producto.costo ?? 0);
-              const nuevoCosto = Number(d.precio ?? 0);
-              const diffPercent =
-                costoOriginal > 0 ? ((nuevoCosto - costoOriginal) / costoOriginal) * 100 : 0;
-              const subtotal = (nuevoCosto || 0) * (d.cantidad || 0);
-              let diffColor = "";
-              if (Math.abs(diffPercent) >= 10) diffColor = diffPercent > 0 ? "text-green-600" : "text-red-600";
-
-              const recalcularPrecio = (nuevoCosto: number) => {
+            const recalcularPrecio = (nuevoCosto: number) => {
               const precioViejo = Number(d.producto.precio ?? 0);
-              const diferencia = nuevoCosto - costoOriginal; 
+              const diferencia = nuevoCosto - costoOriginal;
               const nuevoPrecioRaw = precioViejo + diferencia;
               if (isNaN(nuevoPrecioRaw)) return Number(precioViejo.toFixed(2));
               const entero = Math.trunc(nuevoPrecioRaw);
@@ -430,224 +535,285 @@ const PedidoModal: React.FC<Props> = ({ pedido, onClose, onGuardado }) => {
               }
             };
 
-              return (
-                <div
-                  key={d.producto.id}
-                  className={`grid grid-cols-10 px-4 py-2 border-b items-center text-sm min-w-[900px] ${
-                    d.marcados ? "bg-green-50" : ""
-                  }`}
-                >
-                  <div>{d.producto.clave}</div>
+            return (
+              <div
+                key={d.producto.id}
+                className={`grid grid-cols-10 px-4 py-2 border-b items-center text-sm min-w-[900px] ${
+                  d.marcados ? "bg-green-50" : ""
+                }`}
+              >
+                <div>{d.producto.clave}</div>
 
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span>{d.producto.descripcion}</span>
-                    {d.esTemporal && (
-                      <button
-                        type="button"
-                        className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded hover:bg-yellow-200 whitespace-nowrap"
-                        onClick={() => abrirProductoModalPara(d.producto)}
-                      >
-                        Completar
-                      </button>
-                    )}
-                  </div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span>{d.producto.descripcion}</span>
+                  {d.esTemporal && (
+                    <button
+                      type="button"
+                      className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded hover:bg-yellow-200 whitespace-nowrap"
+                      onClick={() => abrirProductoModalPara(d.producto)}
+                    >
+                      Completar
+                    </button>
+                  )}
+                </div>
 
-                  <div>
-                    <input
-                      type="number"
-                      min={1}
-                      value={d.cantidad}
-                      onChange={(e) => actualizarCantidad(d.producto.id, Number(e.target.value))}
-                      className="input w-16"
-                    />
-                  </div>
+                <div>
+                  <input
+                    type="number"
+                    min={1}
+                    value={d.cantidad}
+                    onChange={(e) =>
+                      actualizarCantidad(d.producto.id, Number(e.target.value))
+                    }
+                    className="input w-16"
+                  />
+                </div>
 
-                  {/* Costo actual */}
-                  <div>${costoOriginal.toFixed(2)}</div>
+                <div>${costoOriginal.toFixed(2)}</div>
 
-                  {/* Nuevo costo editable + botón IVA */}
-                  <div className="flex items-center gap-1 flex-wrap">
-                    {esSurtido ? (
-                      <>
-                        <input
-                          type="number"
-                          value={nuevoCosto}
-                          onChange={(e) => {
-                            const nuevo = Number(e.target.value);
-                            setDetalles((prev) =>
-                              prev.map((det) =>
-                                det.producto.id === d.producto.id
-                                  ? {
-                                      ...det,
-                                      precio: nuevo,
-                                      precioEditable: recalcularPrecio(nuevo),
-                                    }
-                                  : det
-                              )
-                            );
-                          }}
-                          className="input w-20"
-                        />
-                        <button
-                          type="button"
-                          title="Aplicar 16% (IVA)"
-                          className="px-2 py-1 bg-gray-200 rounded hover:bg-gray-300 whitespace-nowrap"
-                          onClick={() => {
-                            const nuevo = Number((nuevoCosto * 1.16).toFixed(2));
-                            setDetalles((prev) =>
-                              prev.map((det) =>
-                                det.producto.id === d.producto.id
-                                  ? {
-                                      ...det,
-                                      precio: nuevo,
-                                      precioEditable: recalcularPrecio(nuevo),
-                                    }
-                                  : det
-                              )
-                            );
-                          }}
-                        >
-                          +16%
-                        </button>
-
-                        {Math.abs(diffPercent) >= 10 && (
-                          <span
-                            className={`text-xs ml-1 ${diffColor}`}
-                            title={`Cambio de ${diffPercent.toFixed(1)}% respecto al costo original`}
-                          >
-                            ⚠️
-                          </span>
-                        )}
-                      </>
-                    ) : (
-                      `$${nuevoCosto.toFixed(2)}`
-                    )}
-                  </div>
-
-                  {/* Precio actual editable */}
-                  <div>
-                    {esSurtido ? (
+                <div className="flex items-center gap-1 flex-wrap">
+                  {esSurtido ? (
+                    <>
                       <input
                         type="number"
-                        step="0.01"
-                        value={d.precioEditable ?? d.producto.precio ?? 0}
-                        onChange={(e) =>
-                          setDetalles((prev) =>
-                            prev.map((det) =>
-                              det.producto.id === d.producto.id
-                                ? { ...det, precioEditable: Number(e.target.value) }
-                                : det
-                            )
-                          )
-                        }
-                        className="input w-24"
-                      />
-                    ) : (
-                      `$${Number(d.producto.precio ?? 0).toFixed(2)}`
-                    )}
-                  </div>
-
-                  {/* Precio individual editable */}
-                  <div>
-                    {esSurtido ? (
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={d.precioIndividualEditable ?? d.producto.precio_individual ?? 0}
-                        onChange={(e) =>
+                        value={nuevoCosto}
+                        onChange={(e) => {
+                          const nuevo = Number(e.target.value);
                           setDetalles((prev) =>
                             prev.map((det) =>
                               det.producto.id === d.producto.id
                                 ? {
                                     ...det,
-                                    precioIndividualEditable: Number(e.target.value),
+                                    precio: nuevo,
+                                    precioEditable: recalcularPrecio(nuevo),
                                   }
                                 : det
                             )
-                          )
-                        }
-                        className="input w-24"
+                          );
+                        }}
+                        className="input w-20"
                       />
-                    ) : (
-                      `$${Number(d.producto.precio_individual ?? 0).toFixed(2)}`
-                    )}
-                  </div>
-
-                  {esSurtido && (
-                    <div className="flex justify-center">
-                      <input
-                        type="checkbox"
-                        checked={d.recibido}
-                        onChange={() => toggleRecibido(d.producto.id)}
-                      />
-                    </div>
+                      <button
+                        type="button"
+                        title="Aplicar 16% (IVA)"
+                        className="px-2 py-1 bg-gray-200 rounded hover:bg-gray-300 whitespace-nowrap"
+                        onClick={() => {
+                          const nuevo = Number((nuevoCosto * 1.16).toFixed(2));
+                          setDetalles((prev) =>
+                            prev.map((det) =>
+                              det.producto.id === d.producto.id
+                                ? {
+                                    ...det,
+                                    precio: nuevo,
+                                    precioEditable: recalcularPrecio(nuevo),
+                                  }
+                                : det
+                            )
+                          );
+                        }}
+                      >
+                        +16%
+                      </button>
+                      {Math.abs(diffPercent) >= 10 && (
+                        <span
+                          className={`text-xs ml-1 ${diffColor}`}
+                          title={`Cambio de ${diffPercent.toFixed(1)}% respecto al costo original`}
+                        >
+                          ⚠️
+                        </span>
+                      )}
+                    </>
+                  ) : (
+                    `$${nuevoCosto.toFixed(2)}`
                   )}
+                </div>
 
-                  <div>${subtotal.toFixed(2)}</div>
+                <div>
+                  {esSurtido ? (
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={d.precioEditable ?? d.producto.precio ?? 0}
+                      onChange={(e) =>
+                        setDetalles((prev) =>
+                          prev.map((det) =>
+                            det.producto.id === d.producto.id
+                              ? { ...det, precioEditable: Number(e.target.value) }
+                              : det
+                          )
+                        )
+                      }
+                      className="input w-24"
+                    />
+                  ) : (
+                    `$${Number(d.producto.precio ?? 0).toFixed(2)}`
+                  )}
+                </div>
 
+                <div>
+                  {esSurtido ? (
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={
+                        d.precioIndividualEditable ?? d.producto.precio_individual ?? 0
+                      }
+                      onChange={(e) =>
+                        setDetalles((prev) =>
+                          prev.map((det) =>
+                            det.producto.id === d.producto.id
+                              ? {
+                                  ...det,
+                                  precioIndividualEditable: Number(e.target.value),
+                                }
+                              : det
+                          )
+                        )
+                      }
+                      className="input w-24"
+                    />
+                  ) : (
+                    `$${Number(d.producto.precio_individual ?? 0).toFixed(2)}`
+                  )}
+                </div>
+
+                {esSurtido && (
                   <div className="flex justify-center">
+                    <input
+                      type="checkbox"
+                      checked={d.recibido}
+                      onChange={() => toggleRecibido(d.producto.id)}
+                    />
+                  </div>
+                )}
+
+                <div>${subtotal.toFixed(2)}</div>
+
+                {/* Acciones */}
+                <div className="flex justify-center items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => eliminarDetalle(d.producto.id)}
+                    className="text-red-500 hover:text-red-700"
+                  >
+                    <Trash size={16} />
+                  </button>
+
+                  {/* botón para agregar a otro pedido pendiente */}
+                  {esSurtido && (
                     <button
                       type="button"
-                      onClick={() => eliminarDetalle(d.producto.id)}
-                      className="text-red-500 hover:text-red-700"
+                      onClick={() => handleAgregarAotroPedido(d.producto)}
+                      className="text-blue-500 hover:text-blue-700"
+                      title="Agregar a otro pedido pendiente"
                     >
-                      <Trash size={16} />
+                      <ClipboardPlus size={16} />
                     </button>
-                  </div>
+                  )}
                 </div>
-              );
-            })}
-          </div>
 
-          <div className="text-right font-semibold text-gray-700 mt-2">
-            Total: ${total.toFixed(2)}
-          </div>
+              </div>
+            );
+          })}
+        </div>
 
-          {/* Botones */}
-          <div className="flex justify-end gap-3 mt-4 flex-wrap">
-            <button type="button" onClick={onClose} className="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300">
-              Cancelar
-            </button>
+        <div className="text-right font-semibold text-gray-700 mt-2">
+          Total: ${total.toFixed(2)}
+        </div>
 
-            {pedido && esPendiente && (
-              <button
-                type="button"
-                onClick={() => handleSubmit(undefined, "SURTIDO")}
-                className="px-4 py-2 rounded bg-yellow-500 text-white hover:bg-yellow-600"
-              >
-                Marcar SURTIDO
-              </button>
-            )}
+        {/* Botones finales */}
+        <div className="flex justify-end gap-3 mt-4 flex-wrap">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300"
+          >
+            Cancelar
+          </button>
 
-            {pedido && esSurtido && (
-              <button
-                type="button"
-                onClick={() => handleSubmit(undefined, "ENTREGADO")}
-                className="px-4 py-2 rounded bg-green-500 text-white hover:bg-green-600"
-              >
-                Marcar ENTREGADO
-              </button>
-            )}
-
+          {pedido && esPendiente && (
             <button
-              type="submit"
-              className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700"
+              type="button"
+              onClick={() => handleSubmit(undefined, "SURTIDO")}
+              className="px-4 py-2 rounded bg-yellow-500 text-white hover:bg-yellow-600"
             >
-              Guardar
+              Marcar SURTIDO
             </button>
-          </div>
-        </form>
+          )}
 
-        {mostrarProductoModal && (
-          <ProductoModal
-            producto={productoParaEditar}
-            onClose={() => setMostrarProductoModal(false)}
-            onGuardado={onProductoGuardado}
-          />
-        )}
-      </div>
+          {pedido && esSurtido && (
+            <button
+              type="button"
+              onClick={() => handleSubmit(undefined, "ENTREGADO")}
+              className="px-4 py-2 rounded bg-green-500 text-white hover:bg-green-600"
+            >
+              Marcar ENTREGADO
+            </button>
+          )}
+
+          <button
+            type="submit"
+            className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700"
+          >
+            Guardar
+          </button>
+        </div>
+      </form>
+
+          {mostrarSeleccionPedidos && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-60">
+              <div className="bg-white rounded-lg p-4 w-full max-w-md">
+                <h3 className="font-semibold mb-2">Seleccionar pedido pendiente</h3>
+
+                {pedidosPendientes.length === 0 ? (
+                  <p>No hay pedidos pendientes disponibles.</p>
+                ) : (
+                  <>
+                    <select
+                      className="border rounded p-2 w-full mb-3"
+                      value={pedidoDestinoId ?? ""}
+                      onChange={(e) => setPedidoDestinoId(Number(e.target.value))}
+                    >
+                      {pedidosPendientes.map(p => (
+                        <option key={p.id} value={p.id}>
+                          {p.cliente} — {p.fecha ? new Date(p.fecha).toLocaleString() : ""}
+                        </option>
+                      ))}
+                    </select>
+
+                    <div className="flex justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={() => { setMostrarSeleccionPedidos(false); setProductoParaMover(null); }}
+                        className="px-3 py-1 rounded bg-gray-200 hover:bg-gray-300"
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        type="button"
+                        onClick={confirmarAgregarAotroPedido}
+                        className="px-3 py-1 rounded bg-blue-600 text-white hover:bg-blue-700"
+                      >
+                        Agregar
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+
+      {mostrarProductoModal && (
+        <ProductoModal
+          producto={productoParaEditar}
+          onClose={() => setMostrarProductoModal(false)}
+          onGuardado={onProductoGuardado}
+        />
+      )}
     </div>
-  );
+  </div>
+);
+
 
 };
 

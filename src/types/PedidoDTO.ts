@@ -26,3 +26,9 @@ export interface PedidoFullDTO {
   fecha?: string;
   detalles: DetallePedidoFullDTO[];
 }
+
+export interface PedidoPendiente {
+  id: number;
+  cliente: string;
+  fecha?: string;
+}

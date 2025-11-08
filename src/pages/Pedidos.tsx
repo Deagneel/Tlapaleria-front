@@ -77,16 +77,35 @@ const Pedidos: React.FC = () => {
 
   const pedidosFiltrados = useMemo(() => {
     return pedidos
-      .filter(p => filtroEstado === "Todos" || p.estado?.toLowerCase() === filtroEstado.toLowerCase())
+      .filter(p =>filtroEstado === "Todos" ||p.estado?.toLowerCase() === filtroEstado.toLowerCase())
       .filter(p => p.cliente.toLowerCase().includes(busqueda.toLowerCase()))
       .filter(p => {
         if (!p.fecha) return false;
+
+        // Convertimos a fecha local (sin hora)
         const fechaPedido = new Date(p.fecha);
-        if (fechaInicio && fechaPedido < new Date(fechaInicio)) return false;
-        if (fechaFin && fechaPedido > new Date(fechaFin)) return false;
+        const fechaPedidoLocal = new Date(
+          fechaPedido.getFullYear(),
+          fechaPedido.getMonth(),
+          fechaPedido.getDate()
+        );
+        const inicio = fechaInicio ? new Date(fechaInicio) : null;
+        const fin = fechaFin ? new Date(fechaFin) : null;
+
+        const inicioLocal = inicio
+          ? new Date(inicio.getFullYear(), inicio.getMonth(), inicio.getDate())
+          : null;
+
+        const finLocal = fin
+          ? new Date(fin.getFullYear(), fin.getMonth(), fin.getDate())
+          : null;
+        if (inicioLocal && fechaPedidoLocal < inicioLocal) return false;
+        if (finLocal && fechaPedidoLocal > finLocal) return false;
+
         return true;
       });
   }, [pedidos, busqueda, filtroEstado, fechaInicio, fechaFin]);
+
 
   useEffect(() => { searchRef.current?.focus(); }, []);
 

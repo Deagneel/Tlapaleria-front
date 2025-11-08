@@ -1,25 +1,26 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { Virtuoso } from "react-virtuoso";
-import { ChevronDown, ChevronUp, Edit, Trash } from "lucide-react";
+import { ChevronDown, ChevronUp, Edit, Trash, PlusCircle } from "lucide-react";
 import type { Producto } from "../types/Producto";
 
 interface Props {
   productos: Producto[];
   onEditar: (producto: Producto) => void;
   onEliminar: (id: number) => void;
-  busqueda: string; 
+  onAgregarAPedido: (producto: Producto) => void; // nueva función
+  busqueda: string;
 }
 
 const ROW_HEIGHT = 50;
-const DEFAULT_PAGE_SIZE = 30;
+const DEFAULT_PAGE_SIZE = 10;
 
-const InventarioTable: React.FC<Props> = ({ productos, onEditar, onEliminar, busqueda }) => {
+const InventarioTable: React.FC<Props> = ({ productos, onEditar, onEliminar, onAgregarAPedido, busqueda }) => {
   const [detallesAbiertos, setDetallesAbiertos] = useState<number | null>(null);
   const [paginaActual, setPaginaActual] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [filtroCategoria, setFiltroCategoria] = useState<string>("Todos");
   const [filtroEstado, setFiltroEstado] = useState<string>("Todos");
-  const [ordenAscendente, setOrdenAscendente] = useState<boolean | null>(null); // null = sin ordenar
+  const [ordenAscendente, setOrdenAscendente] = useState<boolean | null>(null);
 
   const categoriaPorClave = (clave: string) => {
     if (!clave) return "Otros";
@@ -141,7 +142,6 @@ const InventarioTable: React.FC<Props> = ({ productos, onEditar, onEliminar, bus
         <div className="text-center">Acciones</div>
       </div>
 
-      {/* Lista virtualizada */}
       <div className="flex-1 overflow-hidden">
         {productosFiltrados.length === 0 ? (
           <p className="text-gray-500 mt-6 text-center">No hay productos que coincidan.</p>
@@ -182,6 +182,13 @@ const InventarioTable: React.FC<Props> = ({ productos, onEditar, onEliminar, bus
                         <Trash size={18} />
                       </button>
                       <button
+                        onClick={() => onAgregarAPedido(producto)}
+                        className="bg-gray-300 text-green-600 hover:bg-gray-400 p-1.5 rounded transition"
+                        title="Agregar a pedido pendiente"
+                      >
+                        <PlusCircle size={18} />
+                      </button>
+                      <button
                         onClick={() => toggleDetalles(producto.id)}
                         className="bg-gray-300 text-gray-600 hover:bg-gray-400 p-1.5 rounded transition"
                         title="Ver más detalles"
@@ -214,7 +221,6 @@ const InventarioTable: React.FC<Props> = ({ productos, onEditar, onEliminar, bus
         )}
       </div>
 
-      {/* Paginación */}
       <div className="flex justify-between items-center px-4 py-3 border-t border-gray-200 flex-shrink-0">
         <div className="flex items-center gap-2">
           <span>Página:</span>

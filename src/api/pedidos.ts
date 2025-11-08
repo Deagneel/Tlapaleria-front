@@ -29,7 +29,6 @@ export const obtenerPedidoPorId = async (id: number) => {
 
 export const obtenerPedidoCompleto = async (id: number) => {
   const url = `${API_URL}/${id}`;
-  console.log("Llamando a:", url);
   const { data } = await axios.get(url);
   return data;
 };
@@ -39,3 +38,19 @@ export const obtenerProductoPorId = async (id: number) => {
   return data;
 };
 
+export const obtenerPedidosPendientes = async (): Promise<PedidoDTO[]> => {
+  const { data } = await axios.get<PedidoDTO[]>(`${API_URL}`);
+  return data.filter((p: PedidoDTO) => (p.estado ?? "").toUpperCase() === "PENDIENTE");
+};
+
+export interface DetallePedidoInput {
+  producto_id: number;
+  cantidad: number;
+  precio: number;
+  recibido?: boolean;
+}
+
+export const agregarProductoAPedido = async (pedidoId: number, detalle: DetallePedidoInput) => {
+  const { data } = await axios.post(`${API_URL}/${pedidoId}/detalles`, detalle);
+  return data;
+};
