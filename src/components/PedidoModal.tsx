@@ -48,6 +48,7 @@ const PedidoModal: React.FC<Props> = ({ pedido, onClose, onGuardado }) => {
   const [mostrarSeleccionPedidos, setMostrarSeleccionPedidos] = useState(false);
   const [productoParaMover, setProductoParaMover] = useState<Producto | null>(null);
   const [pedidoDestinoId, setPedidoDestinoId] = useState<number | null>(null);
+  const [busquedaInterna, setBusquedaInterna] = useState("");
 
   const esPendiente = pedido?.estado === "PENDIENTE" || pedido === null;
   const esSurtido = pedido?.estado === "SURTIDO";
@@ -127,6 +128,15 @@ const PedidoModal: React.FC<Props> = ({ pedido, onClose, onGuardado }) => {
     p.clave.toLowerCase().includes(textoBusqueda.toLowerCase()) ||
     (p.codigo_barras?.toLowerCase().includes(textoBusqueda.toLowerCase()) ?? false)
   );
+
+  const detallesFiltrados = esSurtido
+    ? detalles.filter((d) =>
+        d.producto.descripcion.toLowerCase().includes(busquedaInterna.toLowerCase()) ||
+        d.producto.clave.toLowerCase().includes(busquedaInterna.toLowerCase()) ||
+        (d.producto.codigo_barras?.toLowerCase().includes(busquedaInterna.toLowerCase()) ?? false)
+      )
+    : detalles;
+
 
   const puedeAgregarProducto = (prod: Producto) => !detalles.some(d => d.producto.id === prod.id);
 
@@ -385,7 +395,17 @@ const PedidoModal: React.FC<Props> = ({ pedido, onClose, onGuardado }) => {
         {pedido ? `Editar Pedido (${pedido.cliente})` : "Nuevo Pedido"}
       </h2>
 
-      <form onSubmit={(e) => handleSubmit(e)} className="grid grid-cols-1 gap-4">
+      <form
+        onSubmit={(e) => handleSubmit(e)}
+        onKeyDown={(e) => {
+          const target = e.target as HTMLElement;
+          if (e.key === "Enter" && target.tagName === "INPUT") {
+            e.preventDefault(); // bloquea el submit con Enter
+          }
+        }}
+        className="grid grid-cols-1 gap-4"
+      >
+
         {/* Cliente y estado */}
         <div className="flex gap-4 items-end flex-wrap">
           <div className="flex-1 min-w-[200px]">
@@ -476,6 +496,20 @@ const PedidoModal: React.FC<Props> = ({ pedido, onClose, onGuardado }) => {
             </div>
           </div>
         )}
+        {/*  Buscador interno en modo SURTIDO */}
+          {/* 🔹 Buscador interno en modo SURTIDO */}
+          {esSurtido && (
+            <div className="flex flex-col gap-2 mt-2">
+              <label className="text-gray-700 text-sm">Buscar dentro del pedido</label>
+              <input
+                type="text"
+                placeholder="Buscar por clave, descripción o código de barras"
+                value={busquedaInterna}
+                onChange={(e) => setBusquedaInterna(e.target.value)}
+                className="w-full max-w-sm pl-3 pr-3 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900 placeholder-gray-400 self-start"
+              />
+            </div>
+          )}
 
         {/* Tabla de detalles */}
         <div className="border rounded-lg overflow-auto max-h-[500px]">
@@ -492,7 +526,7 @@ const PedidoModal: React.FC<Props> = ({ pedido, onClose, onGuardado }) => {
             <div className="text-center">Acciones</div>
           </div>
 
-          {detalles.map((d) => {
+          {detallesFiltrados.map((d) => {
             const costoOriginal = Number(d.producto.costo ?? 0);
             const nuevoCosto = Number(d.precio ?? 0);
             const diffPercent =

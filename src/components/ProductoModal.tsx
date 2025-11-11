@@ -97,7 +97,13 @@ const ProductoModal: React.FC<Props> = ({ producto, onClose, onGuardado }) => {
           {producto ? "Editar Producto" : "Agregar Producto"}
         </h2>
 
-        <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <form onSubmit={handleSubmit} 
+          onKeyDown={(e) => {
+          const target = e.target as HTMLElement;
+          if (e.key === "Enter" && target.tagName === "INPUT") {
+            e.preventDefault(); // bloquea el submit con Enter
+          }
+        }} className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-4">
             <input
               name="clave"
