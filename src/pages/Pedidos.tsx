@@ -7,6 +7,7 @@ import { obtenerPedidos, eliminarPedido, actualizarPedido } from "../api/pedidos
 import type { PedidoDTO } from "../types/Pedido";
 import type { PedidoFullDTO } from "../types/PedidoDTO"; 
 import { obtenerPedidoCompleto } from "../api/pedidos";
+import { PlusCircle } from "lucide-react";
 
 const Pedidos: React.FC = () => {
   const [pedidos, setPedidos] = useState<PedidoDTO[]>([]);
@@ -147,6 +148,7 @@ const Pedidos: React.FC = () => {
           onClick={handleNuevo}
           className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 shadow"
         >
+          <PlusCircle size={20} />
           Nuevo Pedido
         </button>
       </div>

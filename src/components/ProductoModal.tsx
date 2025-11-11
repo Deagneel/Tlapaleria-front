@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import type { Producto } from "../types/Producto";
 import { crearProducto, actualizarProducto } from "../api/productos";
 
+
 interface Props {
   producto: Producto | null;
   onClose: () => void;
@@ -24,31 +25,40 @@ const ProductoModal: React.FC<Props> = ({ producto, onClose, onGuardado }) => {
 
   useEffect(() => {
     let buffer = "";
+    let lastKeyTime = 0;
     let timer: number;
 
-    const handleKeyPress = (e: KeyboardEvent) => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Evita interferir cuando el usuario escribe en un input
       if ((e.target as HTMLElement).tagName === "INPUT") return;
+
+      const currentTime = Date.now();
+      // Si el tiempo entre teclas es mayor a 100 ms, empezamos un nuevo código
+      if (currentTime - lastKeyTime > 100) buffer = "";
 
       if (e.key === "Enter") {
         if (buffer.length > 0) {
-          setForm((prev) => ({ ...prev, codigo_barras: buffer }));
+          setForm((prev) => ({ ...prev, codigo_barras: buffer.trim() }));
           buffer = "";
         }
       } else {
-        buffer += e.key;
-        clearTimeout(timer);
-        timer = window.setTimeout(() => {
-          buffer = "";
-        }, 50);
+        // Acepta letras, números, guiones, puntos, y mayúsculas
+        if (/^[a-zA-Z0-9\-_.]$/.test(e.key)) buffer += e.key;
       }
+
+      lastKeyTime = currentTime;
+      clearTimeout(timer);
+      timer = window.setTimeout(() => (buffer = ""), 300);
     };
 
-    window.addEventListener("keypress", handleKeyPress);
+    window.addEventListener("keydown", handleKeyDown);
     return () => {
-      window.removeEventListener("keypress", handleKeyPress);
+      window.removeEventListener("keydown", handleKeyDown);
       clearTimeout(timer);
     };
   }, []);
+
+
 
   useEffect(() => {
     if (producto) {

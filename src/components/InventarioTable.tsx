@@ -45,9 +45,10 @@ const InventarioTable: React.FC<Props> = ({ productos, onEditar, onEliminar, onA
         return (
           p.clave.toLowerCase().includes(texto) ||
           p.descripcion.toLowerCase().includes(texto) ||
-          (p.codigo_barras && p.codigo_barras.includes(texto))
+          (p.codigo_barras && p.codigo_barras.toLowerCase().includes(texto))
         );
       });
+
 
     if (ordenAscendente !== null) {
       filtrados.sort((a, b) => {

@@ -2,17 +2,15 @@ import React, { useEffect, useState } from "react";
 import { obtenerProductos, crearProducto, actualizarProducto, eliminarProducto } from "../api/productos";
 import { crearPedido, actualizarPedido } from "../api/pedidos";
 import ProductoModal from "./ProductoModal";
-import { Plus, Trash } from "lucide-react";
+import { Plus, Trash, ClipboardPlus, X} from "lucide-react";
 import type { PedidoDTO, DetallePedidoDTO } from "../types/Pedido";
 import type { Producto } from "../types/Producto";
 import type { PedidoFullDTO} from "../types/PedidoDTO";
 import { obtenerPedidoCompleto } from "../api/pedidos";
 import type { DetallePedidoFullDTO } from "../types/PedidoDTO";
 import { obtenerPedidosPendientes, agregarProductoAPedido } from "../api/pedidos";
-import { ClipboardPlus } from "lucide-react";
 import { obtenerPedidos as apiObtenerPedidos } from "../api/pedidos";
-
-
+import { Percent} from "lucide-react";
 
 
 interface Props {
@@ -49,9 +47,52 @@ const PedidoModal: React.FC<Props> = ({ pedido, onClose, onGuardado }) => {
   const [productoParaMover, setProductoParaMover] = useState<Producto | null>(null);
   const [pedidoDestinoId, setPedidoDestinoId] = useState<number | null>(null);
   const [busquedaInterna, setBusquedaInterna] = useState("");
+  const [filtroRecibido, setFiltroRecibido] = useState<"TODOS" | "RECIBIDOS" | "NO_RECIBIDOS">("TODOS");
+  const [ordenAlfabeticoAsc, setOrdenAlfabeticoAsc] = useState(true);
+  const [productoFiltradoId, setProductoFiltradoId] = useState<number | null>(null);
 
   const esPendiente = pedido?.estado === "PENDIENTE" || pedido === null;
   const esSurtido = pedido?.estado === "SURTIDO";
+
+  useEffect(() => {
+    const handleEnterKey = (e: KeyboardEvent) => {
+      if (!esSurtido) return;
+
+      if (e.key === "Enter" && busquedaInterna.trim() !== "") {
+        e.preventDefault();
+        const codigo = busquedaInterna.trim().toLowerCase();
+
+        const productoEncontrado = detalles.find(
+          (d) =>
+            d.producto.codigo_barras?.toLowerCase() === codigo ||
+            d.producto.clave.toLowerCase() === codigo
+        );
+
+        if (productoEncontrado) {
+          // 🔹 Marca como recibido
+          setDetalles((prev) =>
+            prev.map((det) =>
+              det.producto.id === productoEncontrado.producto.id
+                ? { ...det, recibido: true }
+                : det
+            )
+          );
+
+          // 🔹 Muestra solo el producto escaneado
+          setProductoFiltradoId(productoEncontrado.producto.id);
+
+          // 🔹 Limpia el campo para el siguiente escaneo
+          setBusquedaInterna("");
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleEnterKey);
+    return () => window.removeEventListener("keydown", handleEnterKey);
+  }, [busquedaInterna, detalles, esSurtido]);
+
+
+
 
   useEffect(() => {
     const cargarPedidosPendientes = async () => {
@@ -102,7 +143,7 @@ const PedidoModal: React.FC<Props> = ({ pedido, onClose, onGuardado }) => {
             precio: d.precio,
             recibido: d.recibido ?? false,
             precioIndividualEditable: producto.precio_individual,
-            marcados: false,
+            marcados: d.recibido ?? false,
             esTemporal: producto.activo === false,
           };
         });
@@ -123,6 +164,13 @@ const PedidoModal: React.FC<Props> = ({ pedido, onClose, onGuardado }) => {
     setTotal(suma);
   }, [detalles]);
 
+  const eliminarDetalle = (productoId: number) => {
+    const confirmar = window.confirm("¿Seguro que deseas eliminar este producto del pedido?");
+    if (confirmar) {
+      setDetalles(prev => prev.filter(d => d.producto.id !== productoId));
+    }
+  };
+
   const productosFiltrados = productosDisponibles.filter(p =>
     p.descripcion.toLowerCase().includes(textoBusqueda.toLowerCase()) ||
     p.clave.toLowerCase().includes(textoBusqueda.toLowerCase()) ||
@@ -130,12 +178,29 @@ const PedidoModal: React.FC<Props> = ({ pedido, onClose, onGuardado }) => {
   );
 
   const detallesFiltrados = esSurtido
-    ? detalles.filter((d) =>
+  ? detalles
+      // 🔹 Si hay un producto filtrado (escaneado), muestra solo ese
+      .filter((d) => !productoFiltradoId || d.producto.id === productoFiltradoId)
+      // 🔹 Aplica el resto de filtros normalmente
+      .filter((d) =>
         d.producto.descripcion.toLowerCase().includes(busquedaInterna.toLowerCase()) ||
         d.producto.clave.toLowerCase().includes(busquedaInterna.toLowerCase()) ||
         (d.producto.codigo_barras?.toLowerCase().includes(busquedaInterna.toLowerCase()) ?? false)
       )
-    : detalles;
+      .filter((d) => {
+        if (filtroRecibido === "RECIBIDOS") return d.recibido;
+        if (filtroRecibido === "NO_RECIBIDOS") return !d.recibido;
+        return true;
+      })
+      .sort((a, b) =>
+        ordenAlfabeticoAsc
+          ? a.producto.descripcion.localeCompare(b.producto.descripcion)
+          : b.producto.descripcion.localeCompare(a.producto.descripcion)
+      )
+  : detalles;
+
+
+
 
 
   const puedeAgregarProducto = (prod: Producto) => !detalles.some(d => d.producto.id === prod.id);
@@ -202,7 +267,6 @@ const PedidoModal: React.FC<Props> = ({ pedido, onClose, onGuardado }) => {
     }
   };
 
-  const eliminarDetalle = (productoId: number) => setDetalles(prev => prev.filter(d => d.producto.id !== productoId));
   const actualizarCantidad = (id: number, cantidad: number) => setDetalles(prev => prev.map(d => d.producto.id === id ? { ...d, cantidad } : d));
   const toggleRecibido = (id: number) => setDetalles(prev => prev.map(d => d.producto.id === id ? { ...d, recibido: !d.recibido, marcados: !d.marcados } : d));
   
@@ -390,7 +454,15 @@ const PedidoModal: React.FC<Props> = ({ pedido, onClose, onGuardado }) => {
 
   return (
   <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-    <div className="bg-gray-50 rounded-xl shadow-xl w-full max-w-5xl p-6">
+    <div className="bg-gray-50 rounded-xl shadow-xl w-full max-w-5xl p-6 max-h-[95vh] overflow-y-auto">
+      <button
+        onClick={onClose}
+        className="absolute top-3 bg-gray-100 right-3 text-gray-500 hover:text-gray-700"
+        title="Cerrar ventana"
+      >
+        <X size={20} />
+      </button>
+
       <h2 className="text-xl font-semibold mb-4 text-gray-700">
         {pedido ? `Editar Pedido (${pedido.cliente})` : "Nuevo Pedido"}
       </h2>
@@ -497,19 +569,54 @@ const PedidoModal: React.FC<Props> = ({ pedido, onClose, onGuardado }) => {
           </div>
         )}
         {/*  Buscador interno en modo SURTIDO */}
-          {/* 🔹 Buscador interno en modo SURTIDO */}
           {esSurtido && (
-            <div className="flex flex-col gap-2 mt-2">
+          <div className="flex flex-wrap items-end justify-between mt-2 gap-2">
+            <div className="flex flex-col">
               <label className="text-gray-700 text-sm">Buscar dentro del pedido</label>
               <input
                 type="text"
-                placeholder="Buscar por clave, descripción o código de barras"
+                placeholder="Buscar..."
                 value={busquedaInterna}
                 onChange={(e) => setBusquedaInterna(e.target.value)}
-                className="w-full max-w-sm pl-3 pr-3 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900 placeholder-gray-400 self-start"
+                className="w-full max-w-sm pl-3 pr-3 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900 placeholder-gray-400"
               />
             </div>
-          )}
+
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Filtro por recibido */}
+              <select
+                value={filtroRecibido}
+                onChange={(e) => setFiltroRecibido(e.target.value as "TODOS" | "RECIBIDOS" | "NO_RECIBIDOS")}
+                className="border border-gray-300 rounded-lg px-2 py-1 bg-white text-gray-800 text-sm"
+              >
+                <option value="TODOS">Todos</option>
+                <option value="RECIBIDOS">Recibidos</option>
+                <option value="NO_RECIBIDOS">No recibidos</option>
+              </select>
+
+              {/* Orden alfabético */}
+              <button
+                type="button"
+                onClick={() => setOrdenAlfabeticoAsc(!ordenAlfabeticoAsc)}
+                className="px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded-lg text-sm whitespace-nowrap"
+                title="Ordenar por nombre"
+              >
+                {ordenAlfabeticoAsc ? "A → Z" : "Z → A"}
+              </button>
+              {productoFiltradoId !== null && (
+              <button
+                onClick={() => setProductoFiltradoId(null)}
+                className="px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded text-sm whitespace-nowrap"
+                title="Mostrar todos los productos"
+              >
+                Mostrar todos
+              </button>
+            )}
+            </div>
+          </div>
+        )}
+
+
 
         {/* Tabla de detalles */}
         <div className="border rounded-lg overflow-auto max-h-[500px]">
@@ -610,27 +717,7 @@ const PedidoModal: React.FC<Props> = ({ pedido, onClose, onGuardado }) => {
                         }}
                         className="input w-20 no-spin"
                       />
-                      <button
-                        type="button"
-                        title="Aplicar 16% (IVA)"
-                        className="px-2 py-1 bg-gray-200 rounded hover:bg-gray-300 whitespace-nowrap"
-                        onClick={() => {
-                          const nuevo = Number((nuevoCosto * 1.16).toFixed(2));
-                          setDetalles((prev) =>
-                            prev.map((det) =>
-                              det.producto.id === d.producto.id
-                                ? {
-                                    ...det,
-                                    precio: nuevo,
-                                    precioEditable: recalcularPrecio(nuevo),
-                                  }
-                                : det
-                            )
-                          );
-                        }}
-                      >
-                        +16%
-                      </button>
+                      
                       {Math.abs(diffPercent) >= 10 && (
                         <span
                           className={`text-xs ml-1 ${diffColor}`}
@@ -660,7 +747,7 @@ const PedidoModal: React.FC<Props> = ({ pedido, onClose, onGuardado }) => {
                           )
                         )
                       }
-                      className="input w-24 no-spin"
+                      className="input w-20 no-spin"
                     />
                   ) : (
                     `$${Number(d.producto.precio ?? 0).toFixed(2)}`
@@ -687,7 +774,7 @@ const PedidoModal: React.FC<Props> = ({ pedido, onClose, onGuardado }) => {
                           )
                         )
                       }
-                      className="input w-24 no-spin"
+                      className="input w-20 no-spin"
                     />
                   ) : (
                     `$${Number(d.producto.precio_individual ?? 0).toFixed(2)}`
@@ -707,28 +794,50 @@ const PedidoModal: React.FC<Props> = ({ pedido, onClose, onGuardado }) => {
                 <div>${subtotal.toFixed(2)}</div>
 
                 {/* Acciones */}
-                <div className="flex justify-center items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => eliminarDetalle(d.producto.id)}
-                    className="text-red-500 hover:text-red-700 bg-gray-200"
-                  >
-                    <Trash size={16} />
-                  </button>
-
-                  {/* botón para agregar a otro pedido pendiente */}
-                  {esSurtido && (
+                <div className="flex flex-col justify-center items-center gap-2">
+                  <div className="flex gap-2">
                     <button
                       type="button"
-                      onClick={() => handleAgregarAotroPedido(d.producto)}
-                      className="text-blue-500 hover:text-blue-700 bg-gray-200"
-                      title="Agregar a otro pedido pendiente"
+                      onClick={() => eliminarDetalle(d.producto.id)}
+                      className="text-red-500 hover:text-red-700 bg-gray-200"
                     >
-                      <ClipboardPlus size={16} />
+                      <Trash size={16} />
                     </button>
+
+                    {esSurtido && (
+                      <button
+                        type="button"
+                        onClick={() => handleAgregarAotroPedido(d.producto)}
+                        className="text-blue-500 hover:text-blue-700 bg-gray-200"
+                        title="Agregar a otro pedido pendiente"
+                      >
+                        <ClipboardPlus size={16} />
+                      </button>
+                    )}
+                  </div>
+                  {esSurtido && (
+                  <button
+                    type="button"
+                    title="Aplicar 16% (IVA)"
+                     className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 whitespace-nowrap flex items-center gap-1"
+                    onClick={() => {
+                      const nuevo = Number((nuevoCosto * 1.16).toFixed(2));
+                      setDetalles((prev) =>
+                        prev.map((det) =>
+                          det.producto.id === d.producto.id
+                            ? {
+                                ...det,
+                                precio: nuevo,
+                                precioEditable: recalcularPrecio(nuevo),
+                              }
+                            : det
+                        )
+                      );
+                    }}>
+                    <Percent size={14} /> IVA
+                  </button>
                   )}
                 </div>
-
               </div>
             );
           })}
@@ -780,6 +889,15 @@ const PedidoModal: React.FC<Props> = ({ pedido, onClose, onGuardado }) => {
           {mostrarSeleccionPedidos && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-60">
               <div className="bg-white rounded-lg p-4 w-full max-w-md">
+
+                 <button
+                  onClick={() => { setMostrarSeleccionPedidos(false); setProductoParaMover(null); }}
+                  className="absolute top-3 bg-gray-100 right-3 text-gray-500 hover:text-gray-700"
+                  title="Cerrar ventana"
+                >
+                  <X size={20} />
+                </button>
+
                 <h3 className="font-semibold mb-2">Seleccionar pedido pendiente</h3>
 
                 {pedidosPendientes.length === 0 ? (
