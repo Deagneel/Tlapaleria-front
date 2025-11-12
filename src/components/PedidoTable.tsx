@@ -13,12 +13,11 @@ const PedidoTable: React.FC<Props> = ({ pedidos, onEditar, onEliminar }) => {
   const getColorClass = (estado: string) => {
     switch (estado) {
       case "PENDIENTE":
-        return "bg-yellow-50 border-l-4 border-yellow-400"; // amarillo claro
+        return "bg-yellow-50 border-l-4 border-yellow-400"; 
       case "SURTIDO":
-        return "bg-emerald-50 border-l-4 border-emerald-400"; // azul claro
+        return "bg-emerald-50 border-l-4 border-emerald-400"; 
       case "ENTREGADO":
-        return "bg-gray-200 border-l-4 border-gray-500"; // verde lima, más contrastante
- // verde claro
+        return "bg-gray-200 border-l-4 border-gray-500"; 
       default:
         return "";
     }
