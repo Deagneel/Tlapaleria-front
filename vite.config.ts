@@ -12,7 +12,7 @@ export default defineConfig({
   ],
 
   server: {
-    host: true,   // 🔹 permite que otros dispositivos de la red accedan (no solo localhost)
-    port: 5173,   // 🔹 mismo puerto que ya usas
+    host: true,  
+    port: 5173,   
   },
 })
