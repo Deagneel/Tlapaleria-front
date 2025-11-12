@@ -8,29 +8,29 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   return (
-    <div className="flex h-screen bg-gray-100 text-gray-800">
+    <div className="flex h-screen bg-stone-50 text-gray-800">
       {/* Sidebar */}
-      <aside className="w-64 bg-gray-50 shadow-lg hidden md:flex flex-col">
+      <aside className="w-60 bg-gray-50 shadow-lg hidden md:flex flex-col">
         <div className="flex items-center gap-2 px-6 py-4 border-b">
-          <Package className="text-blue-600" size={24} />
-          <h1 className="text-lg font-semibold text-blue-600">Tlapalería Leo</h1>
+          <Package className="text-blue-900" size={24} />
+          <h1 className="text-lg font-semibold text-blue-900">Tlapalería Leo</h1>
         </div>
         <nav className="flex-1 p-4 space-y-2">
           <Link
             to="/ventas"
-            className="block py-2 px-3 rounded-lg hover:bg-blue-50 font-medium"
+            className="block py-2 px-3 text-blue-800 rounded-lg hover:bg-blue-50 font-medium"
           >
             Ventas
           </Link>
           <Link
             to="/pedidos"
-            className="block py-2 px-3 rounded-lg hover:bg-blue-50 font-medium"
+            className="block py-2 px-3 text-blue-800 rounded-lg hover:bg-blue-50 font-medium"
           >
             Pedidos
           </Link>
           <Link
             to="/inventario"
-            className="block py-2 px-3 rounded-lg hover:bg-blue-50 font-medium"
+            className="block py-2 px-3 text-blue-800 rounded-lg hover:bg-blue-50 font-medium"
           >
             Almacén
           </Link>

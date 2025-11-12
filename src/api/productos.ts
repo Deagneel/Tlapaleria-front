@@ -1,6 +1,7 @@
 import type { Producto } from "../types/Producto";
 
-const API_URL = "http://localhost:8080/api/productos";
+//const API_URL = "http://localhost:8080/api/productos";
+const API_URL = import.meta.env.VITE_API_URL + "/productos";
 
 interface ProductoBackend {
   id: number;
@@ -49,7 +50,7 @@ const mapearAFormatoBackend = (producto: Omit<Producto, "id">) => ({
   unidad: producto.unidad ?? "",
   activo: producto.activo ?? true,
 });
-
+ 
 export const crearProducto = async (producto: Omit<Producto, "id">): Promise<Producto> => {
   const response = await fetch(API_URL, {
     method: "POST",

@@ -145,3 +145,7 @@ input.white-spin[type="number"] {
 html, body, input.white-spin {
   color-scheme: light !important;
 }
+
+html {
+  font-size: 17px; /* 16px es el valor por defecto */
+}

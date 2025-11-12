@@ -1,17 +1,16 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState,useRef } from "react";
 import { obtenerProductos, crearProducto, actualizarProducto, eliminarProducto } from "../api/productos";
-import { crearPedido, actualizarPedido } from "../api/pedidos";
 import ProductoModal from "./ProductoModal";
 import { Plus, Trash, ClipboardPlus, X} from "lucide-react";
 import type { PedidoDTO, DetallePedidoDTO } from "../types/Pedido";
 import type { Producto } from "../types/Producto";
-import type { PedidoFullDTO} from "../types/PedidoDTO";
-import { obtenerPedidoCompleto } from "../api/pedidos";
-import type { DetallePedidoFullDTO } from "../types/PedidoDTO";
-import { obtenerPedidosPendientes, agregarProductoAPedido } from "../api/pedidos";
+import type { PedidoFullDTO, DetallePedidoFullDTO} from "../types/PedidoDTO";
+import { obtenerPedidosPendientes, agregarProductoAPedido, obtenerPedidoCompleto, crearPedido, actualizarPedido} from "../api/pedidos";
 import { obtenerPedidos as apiObtenerPedidos } from "../api/pedidos";
 import { Percent} from "lucide-react";
-
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import type { UserOptions, HookData } from "jspdf-autotable";
 
 interface Props {
   pedido: PedidoFullDTO | null; 
@@ -50,9 +49,21 @@ const PedidoModal: React.FC<Props> = ({ pedido, onClose, onGuardado }) => {
   const [filtroRecibido, setFiltroRecibido] = useState<"TODOS" | "RECIBIDOS" | "NO_RECIBIDOS">("TODOS");
   const [ordenAlfabeticoAsc, setOrdenAlfabeticoAsc] = useState(true);
   const [productoFiltradoId, setProductoFiltradoId] = useState<number | null>(null);
+  const [productoParaCantidad, setProductoParaCantidad] = useState<Producto | null>(null);
+  const [cantidadModal, setCantidadModal] = useState<number>(1);
+  const [mostrarModalCantidad, setMostrarModalCantidad] = useState(false);
+  const inputBusquedaRef = useRef<HTMLInputElement>(null);
 
   const esPendiente = pedido?.estado === "PENDIENTE" || pedido === null;
   const esSurtido = pedido?.estado === "SURTIDO";
+
+  useEffect(() => {
+    if (!mostrarModalCantidad) {
+      // cuando se cierre el modal, reenfoca la barra
+      setTimeout(() => inputBusquedaRef.current?.focus(), 100);
+    }
+  }, [mostrarModalCantidad]);
+
 
   useEffect(() => {
     const handleEnterKey = (e: KeyboardEvent) => {
@@ -164,6 +175,116 @@ const PedidoModal: React.FC<Props> = ({ pedido, onClose, onGuardado }) => {
     setTotal(suma);
   }, [detalles]);
 
+  const agregarCantidadModal = () => {
+    if (!productoParaCantidad || cantidadModal <= 0) return;
+
+    if (!puedeAgregarProducto(productoParaCantidad)) {
+      alert("El producto ya está en el pedido.");
+    } else {
+      const nuevoDetalle: DetalleTemp = {
+        producto: productoParaCantidad,
+        cantidad: cantidadModal,
+        precio: productoParaCantidad.costo,
+        recibido: false,
+        precioIndividualEditable: productoParaCantidad.precio_individual ?? 0,
+        marcados: false,
+        esTemporal: productoParaCantidad.activo === false,
+      };
+      setDetalles(prev => [...prev, nuevoDetalle]);
+    }
+
+    setTextoBusqueda("");           // limpiar barra
+    setProductoParaCantidad(null);  // limpiar selección
+    setCantidadModal(1);
+    setMostrarModalCantidad(false);
+  };
+
+
+
+  const generarNotaPedido = (pedido: PedidoFullDTO) => {
+    if (!pedido) return;
+
+    const doc = new jsPDF();
+    let y = 20;
+    const margenX = 15;
+
+    const fechaHoy = new Date();
+    const fechaStr = `${fechaHoy.getDate().toString().padStart(2, "0")}-${(
+      fechaHoy.getMonth() + 1
+    )
+      .toString()
+      .padStart(2, "0")}-${fechaHoy.getFullYear().toString().slice(-2)}`;
+
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    doc.text("ORDEN DE PEDIDO", margenX, y);
+    doc.text("Remisión", 150, y, { align: "right" });
+
+    y += 10;
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Negocio: Tlapalería Leo`, margenX, y);
+    doc.text(`Fecha: ${fechaStr}`, 150, y, { align: "right" });
+
+    y += 7;
+    doc.text(`Razon social: Impacto`, margenX, y);
+    doc.text(`Clave: 36482`, 150, y, { align: "right" });
+
+    y += 10;
+
+    const productosSeccion1 = pedido.detalles.filter(
+      (d) => !["T","P","V","F","H","K","t","p","v","f","h","k"].includes(d.producto.clave[0])
+    );
+    const productosSeccion2 = pedido.detalles.filter(
+      (d) => ["T","P","V","F","H","K","t","p","v","f","h","k"].includes(d.producto.clave[0])
+    );
+
+    const generarTabla = (productos: typeof pedido.detalles, razonSocial: string) => {
+      if (!productos.length) return;
+
+      y += 5;
+      doc.text(`Razon social: ${razonSocial}`, margenX, y);
+      y += 5;
+
+      const filas: (string | number)[][] = productos.map((d) => [
+        d.cantidad,
+        d.producto.clave,
+        d.producto.descripcion,
+      ]);
+
+      const options: UserOptions = {
+        startY: y,
+        head: [["Cantidad", "Código", "Descripción"]],
+        body: filas,
+        theme: "grid",
+        headStyles: { fillColor: [70, 130, 180], fontStyle: "bold", halign: "center" },
+        styles: { fontSize: 8.5, cellPadding: 1 },
+        columnStyles: {
+          0: { halign: "center" },
+          1: { halign: "center" }, 
+        },
+        margin: { left: margenX, right: margenX },
+        didDrawPage: (hookData: HookData) => {
+          if (hookData.cursor) {
+            y = hookData.cursor.y + 4; // menos espacio entre tablas
+          }
+        },
+      };
+
+      autoTable(doc, options);
+    };
+
+    generarTabla(productosSeccion1, "Impacto");
+
+    if (productosSeccion2.length) {
+      doc.addPage();
+      y = 20;
+      generarTabla(productosSeccion2, "Truper");
+    }
+
+    doc.save(`NotaPedido_${pedido.cliente}_${fechaStr}.pdf`);
+  };
+
   const eliminarDetalle = (productoId: number) => {
     const confirmar = window.confirm("¿Seguro que deseas eliminar este producto del pedido?");
     if (confirmar) {
@@ -179,9 +300,7 @@ const PedidoModal: React.FC<Props> = ({ pedido, onClose, onGuardado }) => {
 
   const detallesFiltrados = esSurtido
   ? detalles
-      // 🔹 Si hay un producto filtrado (escaneado), muestra solo ese
       .filter((d) => !productoFiltradoId || d.producto.id === productoFiltradoId)
-      // 🔹 Aplica el resto de filtros normalmente
       .filter((d) =>
         d.producto.descripcion.toLowerCase().includes(busquedaInterna.toLowerCase()) ||
         d.producto.clave.toLowerCase().includes(busquedaInterna.toLowerCase()) ||
@@ -198,9 +317,6 @@ const PedidoModal: React.FC<Props> = ({ pedido, onClose, onGuardado }) => {
           : b.producto.descripcion.localeCompare(a.producto.descripcion)
       )
   : detalles;
-
-
-
 
 
   const puedeAgregarProducto = (prod: Producto) => !detalles.some(d => d.producto.id === prod.id);
@@ -499,15 +615,39 @@ const PedidoModal: React.FC<Props> = ({ pedido, onClose, onGuardado }) => {
         {/* Productos solo si PENDIENTE */}
         {esPendiente && (
           <div className="flex flex-wrap gap-2 items-end">
-            <div className="flex-1 min-w-[200px]">
+            <div className="flex-1 min-w-[200px] relative">
               <label className="block text-gray-700 mb-1">Buscar producto</label>
-              <input
-                type="text"
-                value={textoBusqueda}
-                onChange={(e) => setTextoBusqueda(e.target.value)}
-                placeholder="Descripción, clave o código de barras"
-                className="w-full pl-5 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900 placeholder-gray-400"
-              />
+              <div className="flex w-full items-center gap-1">
+                <input
+                  ref={inputBusquedaRef}
+                  type="text"
+                  value={textoBusqueda}
+                  onChange={(e) => setTextoBusqueda(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      const producto = productosFiltrados[0];
+                      if (producto) {
+                        setProductoParaCantidad(producto);
+                        setMostrarModalCantidad(true);
+                        setTimeout(() => inputBusquedaRef.current?.focus(), 100);
+                      } else {
+                        alert("Producto no encontrado");
+                      }
+                    }
+                  }}
+                  placeholder="Descripción, clave o código de barras"
+                  className="flex-1 pl-5 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900 placeholder-gray-400"
+                />
+                <button
+                  type="button"
+                  onClick={() => setTextoBusqueda("")}
+                  className="flex items-center justify-center px-2.5 py-2 bg-gray-100 border border-gray-300 rounded-lg hover:bg-gray-200 text-gray-600"
+                  title="Borrar búsqueda"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
               {productosFiltrados.length > 1 && (
                 <select
                   value={productoSeleccionado?.id || ""}
@@ -542,7 +682,13 @@ const PedidoModal: React.FC<Props> = ({ pedido, onClose, onGuardado }) => {
             <div className="flex flex-wrap gap-2">
               <button
                 type="button"
-                onClick={agregarDetalle}
+                onClick={() => {
+                  if (!productoSeleccionado) {
+                    alert("Selecciona un producto válido");
+                    return;
+                  }
+                  agregarDetalle();
+                }}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-1"
               >
                 <Plus size={16} /> Agregar
@@ -561,25 +707,38 @@ const PedidoModal: React.FC<Props> = ({ pedido, onClose, onGuardado }) => {
                   const costo = Number(costoRaw) || 0;
                   agregarProductoTemporal(clave, descripcion, cantidad, costo);
                 }}
-                className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300"
+                className="px-4 py-2 bg-blue-200 rounded-lg hover:bg-gray-300"
               >
                 Agregar temporal
               </button>
             </div>
           </div>
         )}
+
+
+
         {/*  Buscador interno en modo SURTIDO */}
           {esSurtido && (
           <div className="flex flex-wrap items-end justify-between mt-2 gap-2">
             <div className="flex flex-col">
               <label className="text-gray-700 text-sm">Buscar dentro del pedido</label>
-              <input
-                type="text"
-                placeholder="Buscar..."
-                value={busquedaInterna}
-                onChange={(e) => setBusquedaInterna(e.target.value)}
-                className="w-full max-w-sm pl-3 pr-3 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900 placeholder-gray-400"
-              />
+              <div className="flex items-center gap-1">
+                <input
+                  type="text"
+                  placeholder="Buscar..."
+                  value={busquedaInterna}
+                  onChange={(e) => setBusquedaInterna(e.target.value)}
+                  className="w-full max-w-sm pl-3 pr-3 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900 placeholder-gray-400"
+                />
+                <button
+                  type="button"
+                  onClick={() => setBusquedaInterna("")}
+                  className="flex items-center justify-center px-2.5 py-1.5 bg-gray-100 border border-gray-300 rounded-lg hover:bg-gray-200 text-gray-600"
+                  title="Borrar búsqueda"
+                >
+                  <X size={16} />
+                </button>
+              </div>
             </div>
 
             <div className="flex items-center gap-2 flex-wrap">
@@ -663,7 +822,7 @@ const PedidoModal: React.FC<Props> = ({ pedido, onClose, onGuardado }) => {
               <div
                 key={d.producto.id}
                 className={`grid grid-cols-10 px-4 py-2 border-b items-center text-sm min-w-[900px] ${
-                  d.marcados ? "bg-blue-100" : ""
+                  d.marcados ? "bg-green-50" : ""
                 }`}
               >
                 <div>{d.producto.clave}</div>
@@ -799,7 +958,7 @@ const PedidoModal: React.FC<Props> = ({ pedido, onClose, onGuardado }) => {
                     <button
                       type="button"
                       onClick={() => eliminarDetalle(d.producto.id)}
-                      className="text-red-500 hover:text-red-700 bg-gray-200"
+                      className="text-red-500 hover:text-red-700 bg-blue-100 border-blue-300"
                     >
                       <Trash size={16} />
                     </button>
@@ -808,7 +967,7 @@ const PedidoModal: React.FC<Props> = ({ pedido, onClose, onGuardado }) => {
                       <button
                         type="button"
                         onClick={() => handleAgregarAotroPedido(d.producto)}
-                        className="text-blue-500 hover:text-blue-700 bg-gray-200"
+                        className="text-blue-500 hover:text-blue-700 bg-blue-100 border-blue-300"
                         title="Agregar a otro pedido pendiente"
                       >
                         <ClipboardPlus size={16} />
@@ -819,7 +978,7 @@ const PedidoModal: React.FC<Props> = ({ pedido, onClose, onGuardado }) => {
                   <button
                     type="button"
                     title="Aplicar 16% (IVA)"
-                     className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 whitespace-nowrap flex items-center gap-1"
+                     className="px-3 py-1 bg-blue-100 border-blue-300 rounded hover:bg-gray-300 whitespace-nowrap flex items-center gap-1"
                     onClick={() => {
                       const nuevo = Number((nuevoCosto * 1.16).toFixed(2));
                       setDetalles((prev) =>
@@ -849,13 +1008,15 @@ const PedidoModal: React.FC<Props> = ({ pedido, onClose, onGuardado }) => {
 
         {/* Botones finales */}
         <div className="flex justify-end gap-3 mt-4 flex-wrap">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300"
-          >
-            Cancelar
-          </button>
+          {esPendiente && pedido && (
+            <button
+              type="button"
+              onClick={() => generarNotaPedido(pedido)}
+              className="px-4 py-2 rounded bg-purple-600 text-white hover:bg-purple-700"
+            >
+              Generar nota
+            </button>
+          )}
 
           {pedido && esPendiente && (
             <button
@@ -946,6 +1107,46 @@ const PedidoModal: React.FC<Props> = ({ pedido, onClose, onGuardado }) => {
         />
       )}
     </div>
+    {/* Modal de cantidad */}
+    {mostrarModalCantidad && productoParaCantidad && (
+      <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+        <div className="bg-white rounded-xl p-6 w-full max-w-sm">
+          <h3 className="text-lg font-semibold mb-4">
+            Cantidad para {productoParaCantidad.descripcion}
+          </h3>
+          <input
+            type="number"
+            min={1}
+            value={cantidadModal}
+            onChange={(e) => setCantidadModal(Number(e.target.value))}
+            className="input w-full mb-4"
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                agregarCantidadModal();
+              }
+            }}
+          />
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setMostrarModalCantidad(false)}
+              className="px-3 py-1 rounded bg-gray-200 hover:bg-gray-300"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              onClick={agregarCantidadModal}
+              className="px-3 py-1 rounded bg-blue-600 text-white hover:bg-blue-700"
+            >
+              Agregar
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+
   </div>
 );
 

@@ -84,8 +84,8 @@ const InventarioTable: React.FC<Props> = ({ productos, onEditar, onEliminar, onA
   }, [filtroCategoria, filtroEstado, busqueda, pageSize]);
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50 shadow rounded-lg border border-gray-200">
-      <div className="flex gap-4 px-4 py-2 border-b border-gray-200 flex-shrink-0 bg-gray-50">
+    <div className="flex flex-col h-screen bg-gray-50 shadow rounded-lg border border-stone-200">
+      <div className="flex gap-4 px-4 py-2 border-b border-stone-200 flex-shrink-0 bg-gray-50">
         <div className="flex items-center gap-2">
           <label>Categoría:</label>
           <select
@@ -132,15 +132,15 @@ const InventarioTable: React.FC<Props> = ({ productos, onEditar, onEliminar, onA
       </div>
 
       <div
-        className="grid px-4 py-2 bg-blue-600 text-white font-semibold flex-shrink-0"
-        style={{ gridTemplateColumns: "1fr 3fr 1fr 1fr 1fr 1fr" }}
+        className="grid px-4 py-2 bg-blue-600 text-white font-semibold flex-shrink-0 text-sm sm:text-base"
+        style={{ gridTemplateColumns: "1fr 3fr 1fr 1fr 1fr 1.5fr" }}
       >
-        <div>Clave</div>
-        <div>Descripción</div>
-        <div>Costo</div>
-        <div>Precio</div>
-        <div>Precio Individual</div>
-        <div className="text-center">Acciones</div>
+        <div className="text-center sm:text-left">Clave</div>
+        <div className="text-center sm:text-left">Descripción</div>
+        <div className="text-center sm:text-left">Costo</div>
+        <div className="text-center sm:text-left">Precio</div>
+        <div className="text-center sm:text-left">Unidad</div>
+        <div className="text-center ">Acciones</div>
       </div>
 
       <div className="flex-1 overflow-hidden bg-gray-50">
@@ -154,7 +154,9 @@ const InventarioTable: React.FC<Props> = ({ productos, onEditar, onEliminar, onA
               return (
                 <div
                   key={producto.id}
-                  className="border-b border-gray-100 hover:bg-gray-50 transition"
+                  className={`border-b border-emerald-200 transition ${
+                    index % 2 === 0 ? "bg-white" : "bg-emerald-50"
+                  } hover:bg-blue-100`}
                   style={{ minHeight: ROW_HEIGHT }}
                 >
                   <div
@@ -162,7 +164,8 @@ const InventarioTable: React.FC<Props> = ({ productos, onEditar, onEliminar, onA
                     style={{ gridTemplateColumns: "1fr 3fr 1fr 1fr 1fr 1fr" }}
                   >
                     <div>{producto.clave}</div>
-                    <div className="break-words">{producto.descripcion}</div>
+                    <div className="break-words pl-3">{producto.descripcion}</div>
+
                     <div>${Number(producto.costo).toFixed(2)}</div>
                     <div>${Number(producto.precio).toFixed(2)}</div>
                     <div>${Number(producto.precio_individual).toFixed(2)}</div>
@@ -170,28 +173,28 @@ const InventarioTable: React.FC<Props> = ({ productos, onEditar, onEliminar, onA
                     <div className="flex justify-center gap-3">
                       <button
                         onClick={() => onEditar(producto)}
-                        className="bg-gray-300 text-blue-600 hover:bg-gray-400 p-1.5 rounded transition"
+                        className="bg-blue-100 border-blue-300 text-blue-600 hover:bg-blue-300 p-1.5 rounded transition"
                         title="Editar"
                       >
                         <Edit size={18} />
                       </button>
                       <button
                         onClick={() => onEliminar(producto.id)}
-                        className="bg-gray-300 text-red-500 hover:bg-gray-400 p-1.5 rounded transition"
+                        className="bg-blue-100 border-blue-300 text-red-500 hover:bg-blue-300 p-1.5 rounded transition"
                         title="Eliminar"
                       >
                         <Trash size={18} />
                       </button>
                       <button
                         onClick={() => onAgregarAPedido(producto)}
-                        className="bg-gray-300 text-green-600 hover:bg-gray-400 p-1.5 rounded transition"
+                        className="bg-blue-100 border-blue-300 text-green-600 hover:bg-blue-300 p-1.5 rounded transition"
                         title="Agregar a pedido pendiente"
                       >
                         <PlusCircle size={18} />
                       </button>
                       <button
                         onClick={() => toggleDetalles(producto.id)}
-                        className="bg-gray-300 text-gray-600 hover:bg-gray-400 p-1.5 rounded transition"
+                        className="bg-blue-100 border-blue-300 text-gray-600 hover:bg-blue-300 p-1.5 rounded transition"
                         title="Ver más detalles"
                       >
                         {abierto ? <ChevronUp size={18} /> : <ChevronDown size={18} />}

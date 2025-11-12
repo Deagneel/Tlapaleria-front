@@ -69,11 +69,6 @@ const Inventario: React.FC = () => {
       (p.codigo_barras && p.codigo_barras.includes(busqueda))
   );
 
-  useEffect(() => {
-    searchRef.current?.focus();
-  }, []);
-
-
   const handleAgregarAPedido = async (producto: Producto) => {
     setProductoParaPedido(producto);
     try {

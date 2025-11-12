@@ -1,7 +1,8 @@
 import axios from "axios";
 import type { PedidoDTO } from "../types/Pedido";
 
-const API_URL = "http://localhost:8080/api/pedidos"; 
+//const API_URL = "http://localhost:8080/api/pedidos"; 
+const API_URL = import.meta.env.VITE_API_URL + "/pedidos";
 
 export const obtenerPedidos = async (): Promise<PedidoDTO[]> => {
   const { data } = await axios.get(API_URL);

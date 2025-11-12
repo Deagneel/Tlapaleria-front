@@ -10,9 +10,8 @@ interface Props {
 const SearchBar = forwardRef<HTMLInputElement, Props>(
   ({ value, onChange, onKeyDown }, ref) => {
     return (
-      <div className="flex items-center gap-2 w-full max-w-md">
-        <div className="relative flex-1">
-          {/* Icono de búsqueda dentro del input */}
+      <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full max-w-md">
+        <div className="relative flex-1 w-full">
           <Search className="absolute left-3 top-2.5 text-gray-400" size={18} />
 
           <input
@@ -26,12 +25,11 @@ const SearchBar = forwardRef<HTMLInputElement, Props>(
           />
         </div>
 
-        {/* Botón limpiar (afuera del input, se alinea bonito) */}
         {value && (
           <button
             type="button"
             onClick={() => onChange("")}
-            className="px-2.5 py-2 bg-gray-100 border border-gray-300 rounded-lg hover:bg-gray-200 text-gray-600 flex items-center justify-center"
+            className="sm:w-auto w-full px-2.5 py-2 bg-gray-200 border border-gray-300 rounded-lg hover:bg-gray-200 text-gray-600 flex items-center justify-center"
             title="Borrar búsqueda"
           >
             <X size={16} />
