@@ -7,12 +7,12 @@ import { obtenerPedidos, eliminarPedido, actualizarPedido } from "../api/pedidos
 import type { PedidoDTO } from "../types/Pedido";
 import type { PedidoFullDTO } from "../types/PedidoDTO"; 
 import { obtenerPedidoCompleto } from "../api/pedidos";
-import { PlusCircle } from "lucide-react";
+import { PlusCircle, Filter, Calendar, Users } from "lucide-react";
 
 const Pedidos: React.FC = () => {
   const [pedidos, setPedidos] = useState<PedidoDTO[]>([]);
   const [busqueda, setBusqueda] = useState("");
-  const [pedidoSeleccionado, setPedidoSeleccionado] = useState<PedidoFullDTO | null>(null); // <-- cambia a PedidoFullDTO
+  const [pedidoSeleccionado, setPedidoSeleccionado] = useState<PedidoFullDTO | null>(null);
   const [mostrarModal, setMostrarModal] = useState(false);
   const [filtroEstado, setFiltroEstado] = useState<string>("Todos");
   const [fechaInicio, setFechaInicio] = useState<string>("");
@@ -52,8 +52,6 @@ const Pedidos: React.FC = () => {
       alert("No se pudo cargar el pedido completo");
     }
   };
-
-
 
   const handleEliminar = async (id: number) => {
     if (confirm("¿Deseas eliminar este pedido?")) {
@@ -131,68 +129,166 @@ const Pedidos: React.FC = () => {
 
   }, [pedidos, busqueda, filtroEstado, fechaInicio, fechaFin]);
 
+  // Estadísticas rápidas
+  const estadisticas = useMemo(() => {
+    const total = pedidosFiltrados.length;
+    const pendientes = pedidosFiltrados.filter(p => p.estado?.toUpperCase() === "PENDIENTE").length;
+    const surtidos = pedidosFiltrados.filter(p => p.estado?.toUpperCase() === "SURTIDO").length;
+    const entregados = pedidosFiltrados.filter(p => p.estado?.toUpperCase() === "ENTREGADO").length;
+    
+    return { total, pendientes, surtidos, entregados };
+  }, [pedidosFiltrados]);
 
   return (
     <Layout>
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
+      {/* Header con título y botón */}
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-6">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Gestión de Pedidos</h1>
+        </div>
+        
+        <button
+          onClick={handleNuevo}
+          className="flex items-center gap-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-3.5 rounded-xl hover:shadow-lg transition-all duration-200 font-semibold shadow-md"
+        >
+          <PlusCircle size={20} className="flex-shrink-0" />
+          Nuevo Pedido
+        </button>
+      </div>
+
+      {/* Barra de búsqueda */}
+      <div className="mb-6">
         <SearchBar
           value={busqueda}
           onChange={setBusqueda}
           ref={searchRef}
           onKeyDown={(e) => { if (e.key === "Enter") e.preventDefault(); }}
         />
-        <button
-          onClick={handleNuevo}
-          className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 shadow"
-        >
-          <PlusCircle size={20} />
-          Nuevo Pedido
-        </button>
       </div>
 
-      <div className="flex gap-4 flex-wrap mb-4">
-        <div className="flex items-center gap-2">
-          <label>Estado:</label>
+      {/* Tarjetas de estadísticas */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-blue-100 rounded-lg">
+              <Users size={20} className="text-blue-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-gray-900">{estadisticas.total}</p>
+              <p className="text-sm text-gray-600">Total Pedidos</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-yellow-100 rounded-lg">
+              <Users size={20} className="text-yellow-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-gray-900">{estadisticas.pendientes}</p>
+              <p className="text-sm text-gray-600">Pendientes</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-orange-100 rounded-lg">
+              <Users size={20} className="text-orange-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-gray-900">{estadisticas.surtidos}</p>
+              <p className="text-sm text-gray-600">Surtidos</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-green-100 rounded-lg">
+              <Users size={20} className="text-green-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-gray-900">{estadisticas.entregados}</p>
+              <p className="text-sm text-gray-600">Entregados</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Filtros */}
+      <div className="flex flex-wrap gap-4 mb-6 p-4 bg-gray-50 rounded-xl border border-gray-200">
+        <div className="flex items-center gap-3">
+          <div className="p-1.5 bg-blue-100 rounded-lg">
+            <Filter size={16} className="text-blue-600" />
+          </div>
+          <label className="text-sm font-medium text-gray-700">Estado:</label>
           <select
             value={filtroEstado}
             onChange={(e) => setFiltroEstado(e.target.value)}
-            className="border rounded p-1 bg-white text-gray-800"
+            className="border border-gray-300 rounded-xl px-3 py-2 bg-white text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm"
           >
-            <option value="Todos">Todos</option>
+            <option value="Todos">Todos los estados</option>
             <option value="pendiente">Pendiente</option>
             <option value="surtido">Surtido</option>
             <option value="entregado">Entregado</option>
           </select>
         </div>
 
-        <div className="flex items-center gap-2">
-          <label>Fecha inicio:</label>
+        <div className="flex items-center gap-3">
+          <div className="p-1.5 bg-green-100 rounded-lg">
+            <Calendar size={16} className="text-green-600" />
+          </div>
+          <label className="text-sm font-medium text-gray-700">Fecha inicio:</label>
           <input
             type="date"
             value={fechaInicio}
             onChange={(e) => setFechaInicio(e.target.value)}
-            className="border rounded p-1 bg-white text-gray-800"
+            className="border border-gray-300 rounded-xl px-3 py-2 bg-white text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm"
           />
         </div>
 
-        <div className="flex items-center gap-2">
-          <label>Fecha fin:</label>
+        <div className="flex items-center gap-3">
+          <div className="p-1.5 bg-purple-100 rounded-lg">
+            <Calendar size={16} className="text-purple-600" />
+          </div>
+          <label className="text-sm font-medium text-gray-700">Fecha fin:</label>
           <input
             type="date"
             value={fechaFin}
             onChange={(e) => setFechaFin(e.target.value)}
-            className="border rounded p-1 bg-white text-gray-800"
+            className="border border-gray-300 rounded-xl px-3 py-2 bg-white text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm"
           />
         </div>
+
+        {/* Botón para limpiar filtros */}
+        {(filtroEstado !== "Todos" || fechaInicio || fechaFin) && (
+          <button
+            onClick={() => {
+              setFiltroEstado("Todos");
+              setFechaInicio("");
+              setFechaFin("");
+            }}
+            className="flex items-center gap-2 px-3 py-2 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-all duration-200 text-sm font-medium ml-auto"
+          >
+            <Filter size={14} />
+            Limpiar Filtros
+          </button>
+        )}
       </div>
 
-      <PedidoTable
-        pedidos={pedidosFiltrados}
-        onEditar={handleEditar}
-        onEliminar={handleEliminar}
-        onCambiarEstado={handleCambiarEstado}
-      />
+      {/* Tabla de pedidos */}
+      <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
+        <PedidoTable
+          pedidos={pedidosFiltrados}
+          onEditar={handleEditar}
+          onEliminar={handleEliminar}
+          onCambiarEstado={handleCambiarEstado}
+        />
+      </div>
 
+      {/* Modal */}
       {mostrarModal && (
         <PedidoModal
           pedido={pedidoSeleccionado} 

@@ -77,3 +77,10 @@ export const eliminarProducto = async (id: number): Promise<void> => {
   const response = await fetch(`${API_URL}/${id}`, { method: "DELETE" });
   if (!response.ok) throw new Error("Error al eliminar producto");
 };
+
+export const obtenerProducto = async (id: number): Promise<Producto> => {
+  const response = await fetch(`${API_URL}/${id}`);
+  if (!response.ok) throw new Error("Error al obtener producto por id");
+  const data: ProductoBackend = await response.json();
+  return mapearProducto(data);
+};

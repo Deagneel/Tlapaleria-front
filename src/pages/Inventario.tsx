@@ -4,10 +4,10 @@ import InventarioTable from "../components/InventarioTable";
 import SearchBar from "../components/SearchBar";
 import ProductoModal from "../components/ProductoModal";
 import { obtenerProductos, eliminarProducto } from "../api/productos";
-import { obtenerPedidos, obtenerPedidoCompleto, agregarProductoAPedido } from "../api/pedidos"; // ajusta según tu API
+import { obtenerPedidos, obtenerPedidoCompleto, agregarProductoAPedido } from "../api/pedidos";
 import type { Producto } from "../types/Producto";
 import type { PedidoDTO, DetallePedidoDTO } from "../types/Pedido";
-import { PlusCircle } from "lucide-react";
+import { PlusCircle, X } from "lucide-react";
 
 const Inventario: React.FC = () => {
   const [productos, setProductos] = useState<Producto[]>([]);
@@ -19,6 +19,9 @@ const Inventario: React.FC = () => {
   const [mostrarAgregarAPedido, setMostrarAgregarAPedido] = useState(false);
   const [pedidosPendientes, setPedidosPendientes] = useState<PedidoDTO[]>([]);
   const [pedidoDestinoId, setPedidoDestinoId] = useState<number | null>(null);
+  const [mostrarCantidadModal, setMostrarCantidadModal] = useState(false);
+  const [cantidadInput, setCantidadInput] = useState("1");
+  const inputCantidadRef = useRef<HTMLInputElement>(null);
 
   const searchRef = useRef<HTMLInputElement>(null);
 
@@ -29,7 +32,14 @@ const Inventario: React.FC = () => {
     } catch (error) {
       console.error("Error al cargar productos:", error);
     }
-  };
+  };  
+
+  useEffect(() => {
+    if (mostrarCantidadModal && inputCantidadRef.current) {
+      inputCantidadRef.current.focus();
+      inputCantidadRef.current.select();
+    }
+  }, [mostrarCantidadModal]);
 
   useEffect(() => {
     cargarProductos();
@@ -83,7 +93,7 @@ const Inventario: React.FC = () => {
     }
   };
 
-  const confirmarAgregarAotroPedido = async () => {
+  const confirmarCantidadPedido = async () => {
     if (!productoParaPedido || pedidoDestinoId == null) return alert("Selecciona un pedido destino.");
 
     try {
@@ -91,13 +101,8 @@ const Inventario: React.FC = () => {
       const yaExiste = (pedidoFull.detalles || []).some(
         (dt: DetallePedidoDTO) => dt.producto_id === productoParaPedido.id
       );
-
       if (yaExiste) return alert("El producto ya existe en el pedido seleccionado.");
 
-      const cantidadInput = window.prompt(
-        `¿Cuántas unidades de "${productoParaPedido.descripcion}" deseas agregar?`,
-        "1"
-      );
       const cantidadNum = Number(cantidadInput);
       const cantidad = !isNaN(cantidadNum) && cantidadNum > 0 ? cantidadNum : 1;
 
@@ -111,8 +116,12 @@ const Inventario: React.FC = () => {
       await agregarProductoAPedido(pedidoDestinoId, detalle);
       alert(`Se agregaron ${cantidad} unidades de "${productoParaPedido.descripcion}" al pedido.`);
 
+      // Reset
       setMostrarAgregarAPedido(false);
+      setMostrarCantidadModal(false);
       setProductoParaPedido(null);
+      setPedidoDestinoId(null);
+      setCantidadInput("1");
     } catch (err) {
       console.error("Error agregando producto al pedido:", err);
       alert("No se pudo agregar el producto al pedido.");
@@ -131,9 +140,11 @@ const Inventario: React.FC = () => {
         />
         <button
           onClick={handleNuevo}
-          className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 shadow"
+          className="flex items-center gap-3 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-4 py-3.5 rounded-xl transition-all duration-200 font-semibold shadow-md hover:shadow-lg group"
         >
-          <PlusCircle size={20} />
+          <div className="p-1 bg-white/20 rounded-lg group-hover:bg-white/30 transition-colors">
+            <PlusCircle size={18} className="text-white" />
+          </div>
           Agregar Producto
         </button>
       </div>
@@ -154,41 +165,51 @@ const Inventario: React.FC = () => {
         />
       )}
 
+      {/* Selección de pedido */}
       {mostrarAgregarAPedido && productoParaPedido && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-4 w-full max-w-md">
-            <h3 className="font-semibold mb-2">Seleccionar pedido pendiente</h3>
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-[9999]">
+          <div className="bg-white p-4 rounded shadow-md w-96 relative">
+            <button
+              onClick={() => { setMostrarAgregarAPedido(false); setProductoParaPedido(null); }}
+              className="absolute top-2 right-2 text-gray-500 hover:text-gray-700 bg-gray-200 p-1 rounded"
+            >
+              <X size={20} />
+            </button>
+
+            <h2 className="text-lg font-semibold mb-3">Selecciona un Pedido Pendiente</h2>
 
             {pedidosPendientes.length === 0 ? (
               <p>No hay pedidos pendientes disponibles.</p>
             ) : (
               <>
                 <select
-                  className="border rounded p-2 w-full mb-3"
-                  value={pedidoDestinoId ?? ""}
-                  onChange={(e) => setPedidoDestinoId(Number(e.target.value))}
+                  className="w-full border p-2 rounded mb-4"
+                  value={pedidoDestinoId ?? pedidosPendientes[0]?.id ?? ""}
+                  onChange={e => setPedidoDestinoId(Number(e.target.value))}
                 >
                   {pedidosPendientes.map(p => (
                     <option key={p.id} value={p.id}>
-                      {p.cliente} — {p.fecha ? new Date(p.fecha).toLocaleString() : ""}
+                      Pedido — {p.cliente ?? "Sin cliente"}
                     </option>
                   ))}
                 </select>
 
-                <div className="flex justify-end gap-2">
+                {pedidoDestinoId == null && (
+                  <p className="text-red-600 text-sm mb-2">Debes seleccionar un pedido.</p>
+                )}
+
+                <div className="flex justify-end space-x-2">
                   <button
-                    type="button"
                     onClick={() => { setMostrarAgregarAPedido(false); setProductoParaPedido(null); }}
-                    className="px-3 py-1 rounded bg-gray-200 hover:bg-gray-300"
+                    className="px-3 py-1 rounded bg-red-600 text-white hover:bg-red-700"
                   >
                     Cancelar
                   </button>
                   <button
-                    type="button"
-                    onClick={confirmarAgregarAotroPedido}
+                    onClick={() => setMostrarCantidadModal(true)}
                     className="px-3 py-1 rounded bg-blue-600 text-white hover:bg-blue-700"
                   >
-                    Agregar
+                    Aceptar
                   </button>
                 </div>
               </>
@@ -196,6 +217,40 @@ const Inventario: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Modal de cantidad */}
+      {mostrarCantidadModal && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-[9999]">
+          <div className="bg-white p-4 rounded shadow-md w-80">
+            <h2 className="text-lg font-semibold mb-3">Cantidad a Agregar</h2>
+
+            <input
+              type="number"
+              ref={inputCantidadRef}
+              className="w-full border p-2 rounded"
+              value={cantidadInput}
+              min="1"
+              onChange={e => setCantidadInput(e.target.value)}
+            />
+
+            <div className="flex justify-end space-x-2 mt-4">
+              <button
+                onClick={() => setMostrarCantidadModal(false)}
+                className="px-3 py-1 rounded bg-red-600 text-white hover:bg-red-700"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={confirmarCantidadPedido}
+                className="px-3 py-1 rounded bg-blue-600 text-white hover:bg-blue-700"
+              >
+                Agregar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </Layout>
   );
 };
