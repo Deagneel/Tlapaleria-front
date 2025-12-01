@@ -63,13 +63,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   return (
     <div className="flex h-screen bg-gradient-to-br from-gray-100 to-blue-50/100 text-gray-800">
-      {/* Sidebar */}
       <aside
         className={`bg-gray-50 backdrop-blur-sm shadow-xl flex flex-col transition-all duration-300 border-r border-gray-200/50 ${
           collapsed ? "w-15" : "w-56"
         }`}
       >
-        {/* Logo Section */}
         <div className="flex items-center gap-2 px-3 py-4 border-b border-gray-200/50">
           <div className="p-2 bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg shadow-sm">
             <Package className="text-white" size={20} />
@@ -82,7 +80,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           )}
         </div>
 
-        {/* Navigation */}
         <nav className="flex-1 p-2 space-y-1">
           {navigationItems.map((item) => {
             const Icon = item.icon;
@@ -125,7 +122,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           })}
         </nav>
 
-        {/* Footer */}
         {!collapsed && (
           <div className="p-3 border-t border-gray-200/50">
             <div className="text-center">
@@ -137,9 +133,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         )}
       </aside>
 
-      {/* Main Content */}
       <main className="flex-1 flex flex-col overflow-hidden">
-        {/* Header */}
         <header className="bg-white/90 backdrop-blur-sm shadow-sm border-b border-gray-200/50 sticky top-0 z-10">
           <div className="flex bg-gray-50 items-center justify-between px-6 py-3">
             <div className="flex items-center gap-4">
@@ -150,7 +144,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 <Menu size={20} />
               </button>
               
-              {/* Breadcrumb */}
               <div className="flex items-center gap-2 text-sm text-gray-600">
                 <Home size={16} />
                 <span>/</span>
@@ -161,8 +154,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             </div>
           </div>
         </header>
-
-        {/* Page Content */}
         <div className="flex-1 overflow-y-auto p-6">
           <div className="max-w-7xl mx-auto">
             {children}

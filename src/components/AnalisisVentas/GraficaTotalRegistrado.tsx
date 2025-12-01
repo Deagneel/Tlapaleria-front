@@ -62,7 +62,6 @@ const GraficaTotalRegistrado: React.FC = () => {
     <div className="p-4 bg-white rounded shadow space-y-4">
       <h3 className="text-lg font-semibold">Total registrado por año</h3>
 
-      {/* Totales visibles */}
       <div className="bg-gray-50 p-3 rounded border space-y-2">
         <div className="text-base font-semibold">
           Total registrado (histórico):

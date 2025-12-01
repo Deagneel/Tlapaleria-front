@@ -127,7 +127,6 @@ const ProductoModal: React.FC<Props> = ({ producto, onClose, onGuardado }) => {
           </button>
         </div>
 
-        {/* Form */}
         <form 
           onSubmit={handleSubmit} 
           onKeyDown={(e) => {
@@ -139,9 +138,7 @@ const ProductoModal: React.FC<Props> = ({ producto, onClose, onGuardado }) => {
           className="p-6 overflow-auto max-h-[calc(90vh-80px)]"
         >
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Columna Izquierda - SIN CAMBIOS */}
             <div className="space-y-4">
-              {/* Clave */}
               <div className="space-y-2">
                 <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
                   <div className="p-1.5 bg-blue-100 rounded-lg">
@@ -159,7 +156,6 @@ const ProductoModal: React.FC<Props> = ({ producto, onClose, onGuardado }) => {
                 />
               </div>
 
-              {/* Descripción */}
               <div className="space-y-2">
                 <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
                   <div className="p-1.5 bg-green-100 rounded-lg">
@@ -177,7 +173,6 @@ const ProductoModal: React.FC<Props> = ({ producto, onClose, onGuardado }) => {
                 />
               </div>
 
-              {/* Código de Barras */}
               <div className="space-y-2">
                 <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
                   <div className="p-1.5 bg-purple-100 rounded-lg">
@@ -195,9 +190,7 @@ const ProductoModal: React.FC<Props> = ({ producto, onClose, onGuardado }) => {
               </div>
             </div>
 
-            {/* Columna Derecha - SIN CAMBIOS */}
             <div className="space-y-4">
-              {/* Costo */}
               <div className="space-y-2">
                 <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
                   <div className="p-1.5 bg-orange-100 rounded-lg">
@@ -218,7 +211,6 @@ const ProductoModal: React.FC<Props> = ({ producto, onClose, onGuardado }) => {
                 />
               </div>
 
-              {/* Precios de Venta */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
@@ -263,7 +255,6 @@ const ProductoModal: React.FC<Props> = ({ producto, onClose, onGuardado }) => {
             </div>
           </div>
 
-          {/* 🔥 NUEVA SECCIÓN: Producto Empaquetado */}
           <div className="mt-6">
             <details className="group bg-gradient-to-r from-orange-50 to-orange-100 rounded-xl border border-orange-200 overflow-hidden">
               <summary className="cursor-pointer p-4 flex items-center justify-between text-gray-700 hover:bg-white/50 transition-all duration-200">
@@ -283,7 +274,6 @@ const ProductoModal: React.FC<Props> = ({ producto, onClose, onGuardado }) => {
               
               <div className="p-4 border-t border-orange-200 bg-white">
                 <div className="space-y-4">
-                  {/* Checkbox para producto empaquetado */}
                   <div className="flex items-center gap-3">
                     <input
                       type="checkbox"
@@ -296,8 +286,6 @@ const ProductoModal: React.FC<Props> = ({ producto, onClose, onGuardado }) => {
                       ¿Es producto empaquetado?
                     </label>
                   </div>
-
-                  {/* Campos condicionales */}
                   {form.es_producto_paquete && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pl-6 border-l-2 border-orange-200">
                       <div className="space-y-2">
@@ -334,8 +322,6 @@ const ProductoModal: React.FC<Props> = ({ producto, onClose, onGuardado }) => {
               </div>
             </details>
           </div>
-
-          {/* Sección de Inventario existente - SIN CAMBIOS */}
           <div className="mt-6">
             <details className="group bg-gradient-to-r from-gray-50 to-blue-50 rounded-xl border border-gray-200 overflow-hidden">
               <summary className="cursor-pointer p-4 flex items-center justify-between text-gray-700 hover:bg-white/50 transition-all duration-200">
@@ -389,7 +375,6 @@ const ProductoModal: React.FC<Props> = ({ producto, onClose, onGuardado }) => {
             </details>
           </div>
 
-          {/* Botones - SIN CAMBIOS */}
           <div className="flex justify-end gap-3 mt-8 pt-6 border-t border-gray-200">
             <button 
               type="button" 

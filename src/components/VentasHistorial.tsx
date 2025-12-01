@@ -7,7 +7,7 @@ import {
   obtenerVentasPorDia,
   obtenerProductosVendidosPorDia,
   obtenerVenta,
-  eliminarVenta as apiEliminarVenta, // <-- nuevo
+  eliminarVenta as apiEliminarVenta,
 } from "../api/ventas";
 
 import { eliminarDetalleVenta as apiEliminarDetalleVenta } from "../api/ventas"; 
@@ -30,7 +30,6 @@ import { ClipboardPlus, X } from "lucide-react";
 import { obtenerProducto } from "../api/productos";
 
 const VentasHistorial: React.FC = () => {
-  // navegación / niveles
   const [meses, setMeses] = useState<HistorialMonth[]>([]);
   const [selectedMonth, setSelectedMonth] = useState<HistorialMonth | null>(null);
 
@@ -38,24 +37,20 @@ const VentasHistorial: React.FC = () => {
   const [selectedWeek, setSelectedWeek] = useState<HistorialWeek | null>(null);
 
   const [diasVentas, setDiasVentas] = useState<VentaResumenHistorial[]>([]);
-  const [selectedDay, setSelectedDay] = useState<string | null>(null); // yyyy-MM-dd
+  const [selectedDay, setSelectedDay] = useState<string | null>(null); 
 
-  // ventas (resumen) de un día
+
   const [ventasDelDia, setVentasDelDia] = useState<VentaResumenHistorial[]>([]);
 
-  // detalle de venta (modal)
   const [ventaDetalle, setVentaDetalle] = useState<VentaDetalleDTO | null>(null);
   const [detalleModalOpen, setDetalleModalOpen] = useState(false);
 
-  // productos agregados de un día (modal)
   const [productosDia, setProductosDia] = useState<ProductoVendido[]>([]);
   const [productosModalOpen, setProductosModalOpen] = useState(false);
 
-  // búsqueda en listado de meses / ventas
   const [busqueda] = useState("");
   const [loading, setLoading] = useState(true);
 
-  // === Para replicar la funcionalidad del PedidoModal ===
   const [productoParaMover, setProductoParaMover] = useState<ProductoDTO | null>(null);
   const [pedidosPendientes, setPedidosPendientes] = useState<(PedidoDTO & { id: number })[]>([]);
   const [pedidoDestinoId, setPedidoDestinoId] = useState<number | null>(null);
@@ -69,14 +64,13 @@ const VentasHistorial: React.FC = () => {
 
   const productoVendidoToProductoAsync = async (p: ProductoVendido): Promise<ProductoDTO> => {
     try {
-      // 1. Obtener producto REAL desde el backend
       const prod = await obtenerProducto(p.productoId);
 
       return {
         id: p.productoId,
         clave: p.clave ?? "",
         descripcion: p.descripcion ?? "",
-        costo: Number(prod.costo ?? 0),   // costo REAL del API
+        costo: Number(prod.costo ?? 0),   
         precio: Number(prod.precio ?? prod.costo ?? 0),
         activo: true,
       };
@@ -84,7 +78,6 @@ const VentasHistorial: React.FC = () => {
     } catch (err) {
       console.error("Error obteniendo producto del API:", err);
 
-      // fallback en caso de error
       return {
         id: p.productoId,
         clave: p.clave ?? "",
@@ -100,28 +93,26 @@ const VentasHistorial: React.FC = () => {
   useEffect(() => {
     if (mostrarCantidadModal && inputCantidadRef.current) {
       inputCantidadRef.current.focus();
-      inputCantidadRef.current.select(); // Esto selecciona el valor por defecto
+      inputCantidadRef.current.select(); 
     }
   }, [mostrarCantidadModal]);
 
 
   const detalleToProducto = async (d: DetalleVentaResultDTO): Promise<ProductoDTO> => {
     try {
-      // 🔥 1. LLAMADA REAL AL API DE PRODUCTOS
       const prod = await obtenerProducto(d.producto_id);
 
       return {
         id: d.producto_id,
         clave: d.clave ?? "",
         descripcion: d.descripcion ?? "",
-        costo: Number(prod.costo ?? 0),   // 🔥 2. COSTO REAL DEL PRODUCTO
+        costo: Number(prod.costo ?? 0),   
         precio: Number(d.precio), 
         activo: true,
       };
     } catch (err) {
       console.error("Error obteniendo producto del API:", err);
 
-      // fallback (lo que tenías antes)
       return {
         id: d.producto_id,
         clave: d.clave ?? "",
@@ -134,7 +125,6 @@ const VentasHistorial: React.FC = () => {
 };
 
 
-  // --- inicial: obtener meses ---
   useEffect(() => {
     const load = async () => {
       setLoading(true);
@@ -155,7 +145,6 @@ const VentasHistorial: React.FC = () => {
   }, []);
 
 
-  // --- seleccionar mes -> cargar semanas ---
   const seleccionarMes = async (mes: HistorialMonth) => {
     setSelectedMonth(mes);
     setSelectedWeek(null);
@@ -187,7 +176,6 @@ const VentasHistorial: React.FC = () => {
 };
 
 
-  // --- seleccionar semana -> cargar dias (usaremos endpoint existente obtenerHistorialPorSemana) ---
   const seleccionarSemana = async (week: HistorialWeek) => {
     setSelectedWeek(week);
     setSelectedDay(null);
@@ -197,7 +185,7 @@ const VentasHistorial: React.FC = () => {
       const dias: HistorialDay[] = await obtenerHistorialPorSemana(week.year, week.week);
 
       const dayTotals: VentaResumenHistorial[] = dias.map(d => ({
-        id: 0, // no aplica aquí, este resumen es por día
+        id: 0, 
         fecha: d.date + "T00:00:00",
         total: Number(d.totalDia),
         lineas: d.ventasCount
@@ -211,9 +199,7 @@ const VentasHistorial: React.FC = () => {
     }
   };
 
-  // --- seleccionar día -> cargar ventas del día ---
   const seleccionarDia = async (dateIso: string) => {
-    // dateIso in format 'yyyy-MM-dd' or 'yyyy-MM-ddT00:00:00'
     const justDate = dateIso.split("T")[0];
     setSelectedDay(justDate);
     setVentasDelDia([]);
@@ -226,7 +212,6 @@ const VentasHistorial: React.FC = () => {
     }
   };
 
-  // --- abrir detalle de venta individual ---
   const abrirDetalle = async (id: number) => {
     try {
       const det = await obtenerVenta(id);
@@ -237,7 +222,6 @@ const VentasHistorial: React.FC = () => {
     }
   };
 
-  // --- ver productos agregados del día ---
   const verProductosDelDia = async () => {
     if (!selectedDay) return;
     try {
@@ -250,15 +234,12 @@ const VentasHistorial: React.FC = () => {
     }
   };
 
-  // --- eliminar venta completa (y actualizar estado) ---
   const handleEliminarVenta = async (ventaId: number) => {
     const ok = window.confirm("¿Eliminar esta venta y todos sus detalles? Esta acción no se puede deshacer.");
     if (!ok) return;
     try {
       await apiEliminarVenta(ventaId);
-      // actualizar lista de ventas del día
       setVentasDelDia(prev => prev.filter(v => v.id !== ventaId));
-      // si el modal está abierto para esa venta, cerrarlo
       if (ventaDetalle && ventaDetalle.id === ventaId) {
         setDetalleModalOpen(false);
         setVentaDetalle(null);
@@ -270,7 +251,6 @@ const VentasHistorial: React.FC = () => {
     }
   };
 
-  // --- eliminar un detalle específico dentro de la venta abierta ---
   const handleEliminarDetalle = async (detalleId: number) => {
   if (!ventaDetalle) return;
 
@@ -279,18 +259,14 @@ const VentasHistorial: React.FC = () => {
   );
   if (!ok) return;
 
-  // verificar que el detalle exista en el estado actual (solo validación visual)
   const detalle = ventaDetalle.detalles.find(d => d.id === detalleId);
   if (!detalle) return alert("Detalle no encontrado en el cliente.");
 
   try {
-    // ahora el backend regresa la venta COMPLETA actualizada
     const updatedVenta = await apiEliminarDetalleVenta(detalleId);
 
-    // 1) actualizar el modal de detalle
     setVentaDetalle(updatedVenta);
 
-    // 2) actualizar también la lista de ventas del día
     setVentasDelDia(prev =>
       prev.map(v =>
         v.id === updatedVenta.id
@@ -306,8 +282,6 @@ const VentasHistorial: React.FC = () => {
   }
 };
 
-
-  // --- breadcrumbs back ---
   const onBack = () => {
     if (productosModalOpen) {
       setProductosModalOpen(false);
@@ -333,10 +307,8 @@ const VentasHistorial: React.FC = () => {
       setSemanas([]);
       return;
     }
-    // at top: do nothing
   };
 
-  // small helpers
   const formatCurrency = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   const handleAgregarAotroPedido = async (producto: ProductoDTO) => {
@@ -377,7 +349,7 @@ const confirmarAgregarAotroPedido = async () => {
     const detalle: DetallePedidoInput = {
       producto_id: productoParaMover.id,
       cantidad,
-      precio: productoParaMover.costo ?? 0, // ahora sí llega correctamente
+      precio: productoParaMover.costo ?? 0, 
       recibido: false,
     };
 
@@ -389,8 +361,6 @@ const confirmarAgregarAotroPedido = async () => {
     await agregarProductoAPedido(pedidoDestinoId, detalle);
 
     alert(`Se agregaron ${cantidad} unidades de "${productoParaMover.descripcion}" al pedido.`);
-
-    // Reset
     setMostrarSeleccionPedidos(false);
     setMostrarCantidadModal(false);
     setProductoParaMover(null);
@@ -403,8 +373,6 @@ const confirmarAgregarAotroPedido = async () => {
   }
 };
 
-
-  // --- UTIL: agrupar meses por año para mostrar división por año ---
   const mesesPorAnio = React.useMemo(() => {
     const map = new Map<number, HistorialMonth[]>();
     for (const m of meses) {
@@ -412,14 +380,12 @@ const confirmarAgregarAotroPedido = async () => {
       arr.push(m);
       map.set(m.year, arr);
     }
-    // ordenar años descendente, meses descendente
     const sorted = Array.from(map.entries()).sort((a, b) => b[0] - a[0])
       .map(([year, arr]) => [year, arr.sort((x, y) => y.month - x.month)] as [number, HistorialMonth[]]);
-    return sorted; // [ [year, [months...] ], ... ]
+    return sorted; 
   }, [meses]);
 
 
-  // Función para obtener nombre del mes en español
 const getMonthName = (monthNumber: number) => {
   const months = [
     'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -428,11 +394,8 @@ const getMonthName = (monthNumber: number) => {
   return months[monthNumber - 1] || '';
 };
 
-// Función para formatear la semana de forma más legible
-// Función para formatear la semana de forma más legible
 const formatWeekDisplay = (week: number, year: number, month?: number) => {
   if (month) {
-    // Calcular el rango de fechas para esta semana del año
     const firstDayOfYear = new Date(year, 0, 1);
     const daysToFirstThursday = (4 - firstDayOfYear.getDay() + 7) % 7;
     const firstThursday = new Date(year, 0, 1 + daysToFirstThursday);
@@ -441,12 +404,11 @@ const formatWeekDisplay = (week: number, year: number, month?: number) => {
     targetDate.setDate(firstThursday.getDate() + (week - 1) * 7);
     
     const startOfWeek = new Date(targetDate.getTime());
-    startOfWeek.setDate(targetDate.getDate() - 3); // Lunes de esa semana
+    startOfWeek.setDate(targetDate.getDate() - 3); 
     
     const endOfWeek = new Date(startOfWeek.getTime());
-    endOfWeek.setDate(startOfWeek.getDate() + 6); // Domingo de esa semana
+    endOfWeek.setDate(startOfWeek.getDate() + 6); 
     
-    // Verificar si la semana pertenece al mes seleccionado
     if (startOfWeek.getMonth() + 1 === month || endOfWeek.getMonth() + 1 === month) {
       const startDay = startOfWeek.getDate();
       const endDay = endOfWeek.getDate();
@@ -461,14 +423,12 @@ const formatWeekDisplay = (week: number, year: number, month?: number) => {
     }
   }
   
-  // Si no tenemos mes o la semana no coincide, mostrar solo el número
   return `Semana`;
 };
 
   return (
     <Layout>
     <div className="p-6 flex flex-col gap-6 text-gray-800 bg-gray-50 min-h-screen">
-      {/* Header Section */}
       <div>
           <h1 className="text-3xl font-bold text-gray-900">Historial de Ventas</h1>
         </div>
@@ -488,7 +448,6 @@ const formatWeekDisplay = (week: number, year: number, month?: number) => {
 
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Column A: Years -> Months or Weeks */}
         <div className="col-span-1">
           {!selectedMonth ? (
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 max-h-[calc(100vh-200px)] overflow-auto">
@@ -576,7 +535,6 @@ const formatWeekDisplay = (week: number, year: number, month?: number) => {
           )}
         </div>
 
-        {/* Column B: Days (when week selected) or placeholder */}
         <div className="col-span-1">
           {!selectedWeek ? (
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 h-[60vh] flex flex-col items-center justify-center text-gray-500 p-8">
@@ -627,7 +585,6 @@ const formatWeekDisplay = (week: number, year: number, month?: number) => {
           )}
         </div>
 
-        {/* Column C: Ventas del día (cuando day selected) */}
         <div className="col-span-1">
           {!selectedDay ? (
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 h-[60vh] flex flex-col items-center justify-center text-gray-500 p-8">
@@ -663,7 +620,6 @@ const formatWeekDisplay = (week: number, year: number, month?: number) => {
                       <div className="flex gap-2 items-center" onClick={(e) => e.stopPropagation()}>
                         <div className="text-green-600 font-bold">${formatCurrency(v.total)}</div>
 
-                        {/* Botón eliminar venta (en la lista de ventas del día) */}
                         <button
                           title="Eliminar venta"
                           onClick={() => handleEliminarVenta(v.id)}
@@ -680,12 +636,9 @@ const formatWeekDisplay = (week: number, year: number, month?: number) => {
           )}
         </div>
       </div>
-
-      {/* Modal: detalle venta individual */}
       {detalleModalOpen && ventaDetalle && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center p-4 z-50">
           <div className="bg-white w-full max-w-6xl rounded-2xl shadow-xl max-h-[90vh] overflow-hidden flex flex-col">
-            {/* Header */}
             <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white">
               <div>
                 <h2 className="text-2xl font-bold text-gray-800">Detalle de Venta</h2>
@@ -714,7 +667,6 @@ const formatWeekDisplay = (week: number, year: number, month?: number) => {
               </div>
             </div>
 
-            {/* Contenido */}
             <div className="flex-1 overflow-auto p-6">
               <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
                 <div className="overflow-x-auto">
@@ -810,7 +762,6 @@ const formatWeekDisplay = (week: number, year: number, month?: number) => {
               </div>
             </div>
 
-            {/* Footer */}
             <div className="flex justify-between items-center p-6 border-t border-gray-200 bg-gray-50">
               <div className="text-sm text-gray-600">
                 {ventaDetalle.detalles.length} producto(s) en esta venta
@@ -822,11 +773,9 @@ const formatWeekDisplay = (week: number, year: number, month?: number) => {
         </div>
       )}
 
-      {/* Modal: Productos Vendidos del Día */}
       {productosModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center p-4 z-50">
           <div className="bg-white w-full max-w-6xl rounded-2xl shadow-xl max-h-[90vh] overflow-hidden flex flex-col">
-            {/* Header */}
             <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-white">
               <div>
                 <h2 className="text-2xl font-bold text-gray-800">Productos Vendidos</h2>
@@ -841,8 +790,6 @@ const formatWeekDisplay = (week: number, year: number, month?: number) => {
                 <FiX size={24} />
               </button>
             </div>
-
-            {/* Contenido */}
             <div className="flex-1 overflow-auto p-6">
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
                 <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">
@@ -945,7 +892,6 @@ const formatWeekDisplay = (week: number, year: number, month?: number) => {
               </div>
             </div>
 
-            {/* Footer */}
             <div className="flex justify-between items-center p-6 border-t border-gray-200 bg-gray-50">
               <div className="text-sm text-gray-600">
                 Mostrando {productosDia.length} producto(s)

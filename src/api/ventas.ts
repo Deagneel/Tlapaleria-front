@@ -27,8 +27,6 @@ export const calcularCambio = async (total: number, pagoCon: number) => {
   return data;
 };
 
-// --- HISTORIAL / AGREGACIONES ---
-
 export async function obtenerMeses(): Promise<HistorialMonth[]> {
   const res = await axios.get(`${API_URL}/historial/meses`);
   return res.data;
@@ -39,25 +37,25 @@ export async function obtenerSemanasPorMes(year: number, month: number): Promise
   return res.data;
 }
 
-// tu endpoint existente que devuelve semanas agrupadas por año/week
+
 export async function obtenerHistorialPorSemana(year: number, week: number) {
   const res = await axios.get(`${API_URL}/historial/${year}/${week}`);
   return res.data;
 }
 
-// ventas de un día (yyyy-MM-dd) -> VentaResumenHistorial[]
+
 export async function obtenerVentasPorDia(dateIso: string): Promise<VentaResumenHistorial[]> {
   const res = await axios.get(`${API_URL}/historial/dia/${dateIso}`);
   return res.data;
 }
 
-// productos agregados vendidos en un día (yyyy-MM-dd)
+
 export async function obtenerProductosVendidosPorDia(dateIso: string): Promise<ProductoVendido[]> {
   const res = await axios.get(`${API_URL}/historial/dia/${dateIso}/productos`);
   return res.data;
 }
 
-// detalle completo de una venta (usa VentaDetalleDTO)
+
 export async function obtenerVenta(id: number): Promise<VentaDetalleDTO> {
   const res = await axios.get(`${API_URL}/${id}`);
   return res.data;

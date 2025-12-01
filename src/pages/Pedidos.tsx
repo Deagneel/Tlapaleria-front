@@ -141,7 +141,6 @@ const Pedidos: React.FC = () => {
 
   return (
     <Layout>
-      {/* Header con título y botón */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-6">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Gestión de Pedidos</h1>
@@ -156,7 +155,6 @@ const Pedidos: React.FC = () => {
         </button>
       </div>
 
-      {/* Barra de búsqueda */}
       <div className="mb-6">
         <SearchBar
           value={busqueda}
@@ -166,7 +164,6 @@ const Pedidos: React.FC = () => {
         />
       </div>
 
-      {/* Tarjetas de estadísticas */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
           <div className="flex items-center gap-3">
@@ -217,7 +214,6 @@ const Pedidos: React.FC = () => {
         </div>
       </div>
 
-      {/* Filtros */}
       <div className="flex flex-wrap gap-4 mb-6 p-4 bg-gray-50 rounded-xl border border-gray-200">
         <div className="flex items-center gap-3">
           <div className="p-1.5 bg-blue-100 rounded-lg">
@@ -262,7 +258,6 @@ const Pedidos: React.FC = () => {
           />
         </div>
 
-        {/* Botón para limpiar filtros */}
         {(filtroEstado !== "Todos" || fechaInicio || fechaFin) && (
           <button
             onClick={() => {
@@ -278,7 +273,6 @@ const Pedidos: React.FC = () => {
         )}
       </div>
 
-      {/* Tabla de pedidos */}
       <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
         <PedidoTable
           pedidos={pedidosFiltrados}
@@ -288,7 +282,6 @@ const Pedidos: React.FC = () => {
         />
       </div>
 
-      {/* Modal */}
       {mostrarModal && (
         <PedidoModal
           pedido={pedidoSeleccionado} 

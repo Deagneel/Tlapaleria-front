@@ -110,13 +110,11 @@ const InventarioTable: React.FC<Props> = ({ productos, onEditar, onEliminar, onA
     setPaginaActual(1);
   }, [filtroCategoria, filtroEstado, busqueda, pageSize]);
 
-  // Función para formatear currency
   const formatCurrency = (n: number) => 
     n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   return (
     <div className="flex flex-col h-screen bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
-      {/* Header con Filtros */}
       <div className="flex flex-wrap gap-4 px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-gray-100">
         <div className="flex items-center gap-3">
           <div className="p-1.5 bg-blue-100 rounded-lg">
@@ -177,7 +175,6 @@ const InventarioTable: React.FC<Props> = ({ productos, onEditar, onEliminar, onA
           </button>
         </div>
 
-        {/* Contador de resultados */}
         <div className="ml-auto flex items-center gap-2">
           <div className="p-1.5 bg-gray-100 rounded-lg">
             <Package size={16} className="text-gray-600" />
@@ -188,7 +185,6 @@ const InventarioTable: React.FC<Props> = ({ productos, onEditar, onEliminar, onA
         </div>
       </div>
 
-      {/* Encabezado de la tabla */}
       <div
         className="grid px-6 py-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold text-sm"
         style={{ gridTemplateColumns: "1fr 3fr 1.2fr 1.2fr 1.2fr 1.5fr" }}
@@ -206,7 +202,6 @@ const InventarioTable: React.FC<Props> = ({ productos, onEditar, onEliminar, onA
         <div className="text-center">Acciones</div>
       </div>
 
-      {/* Lista de productos */}
       <div className="flex-1 overflow-hidden bg-white">
         {productosFiltrados.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-gray-500">
@@ -226,7 +221,7 @@ const InventarioTable: React.FC<Props> = ({ productos, onEditar, onEliminar, onA
                 <div
                   key={producto.id}
                   className={`border-b border-gray-100 transition-all duration-200 ${
-                    index % 2 === 0 ? "bg-white" : "bg-gray-100"  // Cambiado a gris más notorio
+                    index % 2 === 0 ? "bg-white" : "bg-gray-100"  
                   } hover:bg-blue-50 ${abierto ? 'bg-blue-25' : ''}`}
                   style={{ minHeight: ROW_HEIGHT }}
                 >
@@ -247,7 +242,7 @@ const InventarioTable: React.FC<Props> = ({ productos, onEditar, onEliminar, onA
                     <div className="text-right pr-5 font-semibold text-green-600">
                       ${formatCurrency(Number(producto.precio))}
                     </div>
-                    <div className="text-right pr-5 font-medium text-blue-600">
+                    <div className="text-right pr-5 font-semibold text-blue-700">
                       ${formatCurrency(Number(producto.precio_individual))}
                     </div>
 
@@ -295,7 +290,6 @@ const InventarioTable: React.FC<Props> = ({ productos, onEditar, onEliminar, onA
                           </span>
                         </div>
                         
-                        {/* 🔥 EXISTENCIA ACTUALIZADA */}
                         <div className={`flex items-center gap-2 ${agotado ? 'text-red-600 font-semibold' : ''}`}>
                           <span className="font-semibold">Existencia:</span>
                           <span className="bg-white px-2 py-1 rounded border border-gray-200">
@@ -325,7 +319,6 @@ const InventarioTable: React.FC<Props> = ({ productos, onEditar, onEliminar, onA
                           </span>
                         </div>
 
-                        {/* 🔥 NUEVA FILA: Tipo de producto */}
                         {producto.es_producto_paquete && (
                           <div className="flex items-center gap-2 col-span-2">
                             <span className="font-semibold">Tipo:</span>
@@ -345,7 +338,6 @@ const InventarioTable: React.FC<Props> = ({ productos, onEditar, onEliminar, onA
         )}
       </div>
 
-      {/* Paginación */}
       <div className="flex flex-col sm:flex-row justify-between items-center gap-4 px-6 py-4 border-t border-gray-200 bg-gray-50">
         <div className="flex items-center gap-3">
           <button

@@ -85,7 +85,7 @@ const ResumenVenta: React.FC<Props> = ({
     }
   };
 
-  // 🔹 NUEVO: Función para cerrar el modal de desglose con auto-focus
+
   const cerrarDesgloseCambio = () => {
     setMostrarDesgloseCambio(false);
     if (onFocusSearch) {
@@ -101,7 +101,7 @@ const ResumenVenta: React.FC<Props> = ({
 
     return (
       <div className="mt-4">
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 max-h-56 overflow-y-auto"> {/* 🔹 MÁS COLUMNAS Y MENOS ALTURA */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 max-h-56 overflow-y-auto"> 
           {entries.map(([denominacion, cantidad]) => {
             const denomInfo = denominaciones[denominacion as keyof typeof denominaciones] || 
                             { emoji: "💰", label: `$${denominacion}`, type: "otro" };
@@ -115,8 +115,8 @@ const ResumenVenta: React.FC<Props> = ({
                     : "bg-green-50 border-green-200"
                 }`}
               >
-                <div className="text-xl mb-1">{denomInfo.emoji}</div> {/* 🔹 TEXTO MÁS PEQUEÑO */}
-                <div className="font-bold text-gray-800 text-sm">{denomInfo.label}</div> {/* 🔹 TEXTO MÁS PEQUEÑO */}
+                <div className="text-xl mb-1">{denomInfo.emoji}</div> 
+                <div className="font-bold text-gray-800 text-sm">{denomInfo.label}</div> 
                 <div className={`font-semibold ${
                   denomInfo.type === "moneda" ? "text-yellow-600" : "text-green-600"
                 }`}>
@@ -130,11 +130,9 @@ const ResumenVenta: React.FC<Props> = ({
           })}
         </div>
         
-        {/* 🔹 ELIMINADO: Sección del cambio total que estaba aquí */}
       </div>
     );
   };
-  // Resto del código se mantiene igual...
   useEffect(() => {
     if (lowStock.length > 0) {
       const timer = setTimeout(() => {
@@ -219,13 +217,12 @@ const ResumenVenta: React.FC<Props> = ({
     setMostrarLowStock(false);
   };
 
-  // 🔹 CORREGIDO: Permitir cobrar cuando hay cargo extra aunque no haya productos
+
   const isSimularCambioDisabled = processing || (cartCount === 0 && cargoExtra === 0) || !pagoCon || pagoCon <= 0;
   const isConfirmVentaDisabled = processing || (cartCount === 0 && cargoExtra === 0);
 
   return (
     <div className="space-y-4">
-      {/* Totales compactos */}
       <div className="space-y-2">
         <div className="flex justify-between items-center text-sm">
           <span className="text-gray-600">Subtotal</span>
@@ -266,7 +263,6 @@ const ResumenVenta: React.FC<Props> = ({
         </div>
       </div>
 
-      {/* Pago con compacto */}
       <div className="space-y-1">
         <label className="text-xs font-medium text-gray-600 flex items-center gap-1">
           <FiDollarSign size={12} />
@@ -283,7 +279,6 @@ const ResumenVenta: React.FC<Props> = ({
         />
       </div>
 
-      {/* Cambio compacto */}
       {pagoCon && pagoCon > 0 && (
         <div className="p-2 bg-green-50 rounded-lg border border-green-200">
           <div className="flex justify-between items-center text-green-800 text-sm">
@@ -293,7 +288,6 @@ const ResumenVenta: React.FC<Props> = ({
         </div>
       )}
 
-      {/* Botones JUNTOS en horizontal */}
       <div className="flex gap-2">
         <button
           onClick={handleSimularCambio}
@@ -326,19 +320,17 @@ const ResumenVenta: React.FC<Props> = ({
         </button>
       </div>
 
-      {/* Indicador de carrito vacío compacto */}
       {cartCount === 0 && cargoExtra === 0 && (
         <div className="text-center text-gray-500 text-xs py-2 bg-gray-50 rounded-lg">
           🛒 Agrega productos o cargo extra para cobrar
         </div>
       )}
 
-      {/* Productos low stock compacto - CON BOTÓN DE CERRAR */}
       {(lowStock?.length ?? 0) > 0 && mostrarLowStock && (
-  <div className="mt-3 p-2 border border-orange-200 rounded-lg bg-orange-50"> {/* 🔹 CAMBIO: p-2 en lugar de p-3 */}
-    <div className="flex items-center justify-between mb-1"> {/* 🔹 CAMBIO: mb-1 en lugar de mb-2 */}
-      <div className="flex items-center gap-1 font-semibold text-orange-800 text-xs"> {/* 🔹 CAMBIO: gap-1 y text-xs */}
-        <FiAlertCircle size={12} /> {/* 🔹 CAMBIO: size={12} */}
+  <div className="mt-3 p-2 border border-orange-200 rounded-lg bg-orange-50"> 
+    <div className="flex items-center justify-between mb-1"> 
+      <div className="flex items-center gap-1 font-semibold text-orange-800 text-xs"> 
+        <FiAlertCircle size={12} /> 
         <span>Para Reponer ({lowStock.length})</span>
       </div>
       <button
@@ -346,7 +338,7 @@ const ResumenVenta: React.FC<Props> = ({
         className="p-1 bg-gray-100 hover:bg-gray-200 rounded transition-colors text-gray-600"
         title="Ocultar alertas"
       >
-        <FiX size={12} /> {/* 🔹 CAMBIO: size={12} */}
+        <FiX size={12} /> 
       </button>
     </div>
     <div className="space-y-1 max-h-20 overflow-auto">
@@ -359,7 +351,7 @@ const ResumenVenta: React.FC<Props> = ({
             <div className="font-medium text-gray-800 truncate">
               {l.descripcion}
             </div>
-            <div className="text-gray-600 flex gap-1"> {/* 🔹 CAMBIO: gap-1 */}
+            <div className="text-gray-600 flex gap-1"> 
               <span>#{l.clave}</span>
               <span className="text-red-600 font-semibold">Exist: {l.existencia}</span>
             </div>
@@ -374,7 +366,7 @@ const ResumenVenta: React.FC<Props> = ({
             }`}
             title="Agregar a pedido"
           >
-            <ClipboardPlus size={12} /> {/* 🔹 CAMBIO: size={12} */}
+            <ClipboardPlus size={12} /> 
           </button>
         </div>
       ))}
@@ -382,7 +374,7 @@ const ResumenVenta: React.FC<Props> = ({
   </div>
 )}
 
-      {/* 🔹 Modal para desglose visual del cambio - ACTUALIZADO con auto-focus */}
+
       {mostrarDesgloseCambio && desgloseCambio && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-[9999] p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md border border-gray-300">
@@ -394,7 +386,7 @@ const ResumenVenta: React.FC<Props> = ({
                 <h2 className="text-lg font-bold text-gray-800">Desglose del Cambio</h2>
               </div>
               <button
-                onClick={cerrarDesgloseCambio} // 🔹 ACTUALIZADO: Usar nueva función
+                onClick={cerrarDesgloseCambio} 
                 className="p-2 text-gray-600 hover:text-gray-800 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors border border-gray-300"
               >
                 <FiX size={16} />
@@ -412,7 +404,7 @@ const ResumenVenta: React.FC<Props> = ({
             </div>
             <div className="flex justify-end p-4 border-t border-gray-200 bg-gray-50 rounded-b-2xl">
               <button
-                onClick={cerrarDesgloseCambio} // 🔹 ACTUALIZADO: Usar nueva función
+                onClick={cerrarDesgloseCambio} 
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium border border-blue-700"
               >
                 Entendido
@@ -422,7 +414,6 @@ const ResumenVenta: React.FC<Props> = ({
         </div>
       )}
 
-      {/* Modal para agregar a pedido (existente) */}
       {mostrarSeleccionPedidos && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-[9999] p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md border border-gray-300">
@@ -456,18 +447,16 @@ const ResumenVenta: React.FC<Props> = ({
                 <label className="block text-sm font-medium text-gray-700 mb-2">Cantidad a agregar</label>
                 <input
                   ref={cantidadInputRef}
-                  type="text" // 🔹 Cambiar a text para mejor control
-                  inputMode="numeric" // 🔹 Mostrar teclado numérico en móviles
-                  pattern="[0-9]*" // 🔹 Patrón para validación HTML5
+                  type="text" 
+                  inputMode="numeric" 
+                  pattern="[0-9]*" 
                   value={cantidadInput}
                   onChange={(e) => {
-                    // 🔹 SOLO PERMITIR NÚMEROS Y EVITAR 0 AL INICIO
                     const value = e.target.value.replace(/[^0-9]/g, '');
                     const cleanValue = value.replace(/^0+/, '');
                     setCantidadInput(cleanValue === '' ? '1' : cleanValue);
                   }}
                   onKeyDown={(e) => {
-                    // 🔹 PREVENIR TECLAS QUE NO SEAN NÚMEROS, BACKSPACE, DELETE, TAB, etc.
                     if (
                       !/[0-9]/.test(e.key) &&
                       e.key !== 'Backspace' &&
@@ -482,11 +471,9 @@ const ResumenVenta: React.FC<Props> = ({
                     }
                   }}
                   onPaste={(e) => {
-                    // 🔹 PREVENIR PEGADO DE TEXTO NO NUMÉRICO
                     const pasteData = e.clipboardData.getData('text');
                     if (!/^\d+$/.test(pasteData)) {
                       e.preventDefault();
-                      // Opcional: mostrar un mensaje al usuario
                       alert('Solo se permiten números');
                     }
                   }}

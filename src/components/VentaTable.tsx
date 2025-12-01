@@ -13,21 +13,17 @@ interface Props {
   onFocusSearch?: () => void;
 }
 
-// 🔥 FUNCIÓN CORREGIDA: Calcular precio activo
 const calcularPrecioActivo = (detalle: DetalleVentaDTO, producto?: Producto): number => {
   if (!producto) return detalle.precio;
   
   const esProductoEmpaquetado = producto.es_producto_paquete ?? false;
   
   if (esProductoEmpaquetado) {
-    // 🔥 PRODUCTO EMPAQUETADO: usar precio individual si se vende por unidad
     if (detalle.vender_por_unidad) {
       return producto.precio_individual ?? detalle.precioIndividual;
     }
-    // Si no se vende por unidad, usar precio del paquete
     return detalle.precio;
   } else {
-    // 🔥 PRODUCTO NORMAL: usar lógica de precio individual
     if (detalle.usarPrecioIndividual) {
       return detalle.precioIndividual;
     }
@@ -105,7 +101,6 @@ const VentaTable: React.FC<Props> = ({
         const producto = findProd(d.producto_id);
         const tienePrecioIndividual = (producto?.precio_individual ?? 0) > 0;
         
-        // 🔥 USAR FUNCIÓN CORREGIDA para calcular precio activo
         const precioActivo = calcularPrecioActivo(d, producto);
         const subtotal = precioActivo * d.cantidad;
 
@@ -115,7 +110,6 @@ const VentaTable: React.FC<Props> = ({
             className="bg-white border border-gray-200 rounded-lg p-3 hover:shadow-sm transition-all duration-150"
           >
             <div className="flex items-center justify-between gap-3">
-              {/* Información del producto */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-start justify-between mb-1">
                   <div className="flex-1 min-w-0">
@@ -132,7 +126,6 @@ const VentaTable: React.FC<Props> = ({
                       </span>
                     </div>
                     
-                    {/* 🔥 INDICADOR DE PRODUCTO EMPAQUETADO - SOLO SI EXISTE EL PRODUCTO */}
                     {producto?.es_producto_paquete && (
                       <div className="mt-1 flex items-center gap-1">
                         <span className="bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded text-xs border border-orange-200 flex items-center gap-1">
@@ -143,14 +136,12 @@ const VentaTable: React.FC<Props> = ({
                     )}
                   </div>
                   
-                  {/* Precio y subtotal */}
                   <div className="text-right shrink-0">
                     <div className="font-semibold text-green-600 text-sm">${precioActivo.toFixed(2)}</div>
                     <div className="font-bold text-gray-800 text-xs">${subtotal.toFixed(2)}</div>
                   </div>
                 </div>
 
-                {/* 🔥 BOTONES PARA PRODUCTOS EMPAQUETADOS - SOLO SI EXISTE EL PRODUCTO */}
                 {producto?.es_producto_paquete && (
                   <div className="mt-2 flex items-center gap-2">
                     <button
@@ -172,7 +163,6 @@ const VentaTable: React.FC<Props> = ({
                   </div>
                 )}
 
-                {/* Toggle precio individual (solo para productos NO empaquetados) */}
                 {producto && !producto.es_producto_paquete && tienePrecioIndividual && (
                   <div className="mt-2 flex items-center gap-2">
                     <button
@@ -196,9 +186,7 @@ const VentaTable: React.FC<Props> = ({
                 )}
               </div>
 
-              {/* Controles de cantidad y acciones */}
               <div className="flex items-center gap-2 shrink-0">
-                {/* Controles de cantidad con fondo */}
                 <div className="flex items-center gap-1 bg-blue-50 rounded-lg p-1 border border-blue-200">
                   <button
                     onClick={() => ajustarCantidad(d.producto_id, -1)}
@@ -225,7 +213,6 @@ const VentaTable: React.FC<Props> = ({
                   </button>
                 </div>
 
-                {/* Botón eliminar con fondo */}
                 <button 
                   onClick={() => handleRemove(d.producto_id)}
                   className="p-1.5 bg-red-100 text-red-600 hover:bg-red-200 rounded-lg transition-colors border border-red-300"

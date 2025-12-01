@@ -17,14 +17,14 @@ export interface VentaDetalleDTO {
   pagoCon: number;
   cambio: number;
   cargoExtra: number;
-  fecha: string; // ISO
+  fecha: string; 
   detalles: DetalleVentaResultDTO[];
 }
 
 export interface HistorialMonth {
   year: number;
-  month: number; // 1..12
-  startDate: string; // ISO yyyy-MM-dd
+  month: number; 
+  startDate: string; 
   endDate: string;
   ventasCount: number;
   totalMes: number;
@@ -33,7 +33,7 @@ export interface HistorialMonth {
 export interface HistorialWeek {
   year: number;
   week: number;
-  startDate: string; // ISO yyyy-MM-dd
+  startDate: string; 
   endDate: string;
   ventasCount: number;
   totalSemana: number;
@@ -41,7 +41,7 @@ export interface HistorialWeek {
 
 export interface VentaResumenHistorial {
   id: number;
-  fecha: string; // ISO datetime
+  fecha: string; 
   total: number;
   lineas?: number;
 }
@@ -60,7 +60,7 @@ export type ProductoVendido = {
 
 
 export interface HistorialDay {
-  date: string;                  // LocalDate → string
+  date: string;               
   ventasCount: number;
   totalDia: number;
   ventas: VentaResumenHistorial[];

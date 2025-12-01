@@ -59,7 +59,6 @@ const PedidoModal: React.FC<Props> = ({ pedido, onClose, onGuardado }) => {
   const [mostrarCantidadModal, setMostrarCantidadModal] = useState(false);
   const [cantidadInput, setCantidadInput] = useState("1");
 
-  // Estilos CSS mejorados
   const styles = {
     input: "w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-200 bg-white text-gray-900 placeholder-gray-500",
     button: {
@@ -241,7 +240,6 @@ const PedidoModal: React.FC<Props> = ({ pedido, onClose, onGuardado }) => {
       .toString()
       .padStart(2, "0")}-${fechaHoy.getFullYear()}`;
 
-    // Header
     doc.setFontSize(18);
     doc.setFont("helvetica", "bold");
     doc.text("NOTA DE PEDIDO", pageWidth / 2, y, { align: "center" });
@@ -257,10 +255,9 @@ const PedidoModal: React.FC<Props> = ({ pedido, onClose, onGuardado }) => {
 
     y += 15;
 
-    // Tabla única con todos los productos (solo cantidad, código y descripción)
     const filas = pedido.detalles.map((d) => [
       d.cantidad.toString(),
-      d.producto.clave.substring(2), // 🔹 Quita los primeros 2 caracteres
+      d.producto.clave.substring(2), 
       d.producto.descripcion
     ]);
 
@@ -295,7 +292,7 @@ const PedidoModal: React.FC<Props> = ({ pedido, onClose, onGuardado }) => {
 
     autoTable(doc, options);
 
-    // Pie de página
+
     doc.setFontSize(8);
     doc.setFont("helvetica", "normal");
 
@@ -590,21 +587,19 @@ const PedidoModal: React.FC<Props> = ({ pedido, onClose, onGuardado }) => {
 
             const debeSumarExistencia = nuevoEstado === "ENTREGADO";
 
-            // 🔥 CORREGIR: Si la existencia es negativa, empezar desde 0
             let nuevaExistencia;
             if (debeSumarExistencia) {
               if (existenciaActual < 0) {
-                nuevaExistencia = d.cantidad; // Empezar desde 0 + cantidad recibida
+                nuevaExistencia = d.cantidad; 
                 console.log("🔄 Frontend: Existencia negativa corregida", 
                   d.producto.descripcion, "de", existenciaActual, "a", nuevaExistencia);
               } else {
-                nuevaExistencia = existenciaActual + d.cantidad; // Sumar normalmente
+                nuevaExistencia = existenciaActual + d.cantidad; 
               }
             } else {
               nuevaExistencia = existenciaActual;
             }
 
-            // 🔥 CORREGIR PIEZAS INDIVIDUALES: Si son negativas, reiniciar con piezas_por_paquete
             let nuevasPiezasIndividuales = piezasIndividualesActuales;
             if (debeSumarExistencia && esProductoPaquete) {
               if (piezasIndividualesActuales < 0) {
@@ -612,7 +607,6 @@ const PedidoModal: React.FC<Props> = ({ pedido, onClose, onGuardado }) => {
                 console.log("🔄 Frontend: Piezas individuales negativas reiniciadas", 
                   d.producto.descripcion, "de", piezasIndividualesActuales, "a", nuevasPiezasIndividuales);
               }
-              // Si no son negativas, se mantienen las piezas actuales
             }
 
             const prodToUpdate: Omit<Producto, "id"> = {
@@ -626,10 +620,9 @@ const PedidoModal: React.FC<Props> = ({ pedido, onClose, onGuardado }) => {
               existencia_min: productoActualizado?.existencia_min ?? d.producto.existencia_min ?? 0,
               unidad: productoActualizado?.unidad ?? d.producto.unidad ?? "",
               activo: d.producto.activo ?? true,
-              // 🔥 CAMPOS DE PRODUCTOS EMPAQUETADOS CON LÓGICA CORREGIDA
               es_producto_paquete: esProductoPaquete,
               piezas_por_paquete: piezasPorPaquete,
-              piezas_individuales: nuevasPiezasIndividuales, // 🔥 Usamos el valor corregido
+              piezas_individuales: nuevasPiezasIndividuales, 
             };
 
             await actualizarProducto(d.producto.id, prodToUpdate);
@@ -698,7 +691,6 @@ const PedidoModal: React.FC<Props> = ({ pedido, onClose, onGuardado }) => {
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className={`${styles.card} w-full max-w-6xl max-h-[95vh] overflow-hidden flex flex-col`}>
         
-        {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white">
           <div>
             <h2 className="text-2xl font-bold text-gray-800">
@@ -722,8 +714,6 @@ const PedidoModal: React.FC<Props> = ({ pedido, onClose, onGuardado }) => {
             <X size={24} />
           </button>
         </div>
-
-        {/* Contenido */}
         <div className="flex-1 overflow-auto p-6">
           <form
             onSubmit={(e) => handleSubmit(e)}
@@ -736,7 +726,6 @@ const PedidoModal: React.FC<Props> = ({ pedido, onClose, onGuardado }) => {
             className="space-y-6"
           >
             
-            {/* Información del pedido */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -765,7 +754,6 @@ const PedidoModal: React.FC<Props> = ({ pedido, onClose, onGuardado }) => {
                 </div>
               </div>
             </div>
-                        {/* Búsqueda de productos - Solo para PENDIENTE */}
             {esPendiente && (
               <div className="bg-blue-50 rounded-2xl p-6 border border-blue-200">
                 <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
@@ -883,7 +871,6 @@ const PedidoModal: React.FC<Props> = ({ pedido, onClose, onGuardado }) => {
               </div>
             )}
 
-            {/* Buscador interno para modo SURTIDO */}
             {esSurtido && (
               <div className="bg-green-50 rounded-2xl p-6 border border-green-200">
                 <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
@@ -1334,7 +1321,6 @@ const PedidoModal: React.FC<Props> = ({ pedido, onClose, onGuardado }) => {
         </div>
       )}
 
-      {/* Modal de cantidad */}
       {mostrarCantidadModal && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-[9999] p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm">
@@ -1371,7 +1357,6 @@ const PedidoModal: React.FC<Props> = ({ pedido, onClose, onGuardado }) => {
         </div>
       )}
 
-      {/* Modal de cantidad para agregar producto */}
       {mostrarModalCantidad && productoParaCantidad && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-[9999] p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm">

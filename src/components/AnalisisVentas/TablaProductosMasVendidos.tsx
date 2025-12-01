@@ -3,7 +3,6 @@ import { obtenerVentasDTO } from "../../api/ventas";
 import type { VentaResumenDTO } from "../../types/VentaResumenDTO";
 import { obtenerTopProductos } from "../../utils/analyticsUtils";
 
-// Helpers de fecha (se mantienen igual)
 function esMismoDia(fecha: Date, referencia: Date): boolean {
   return (
     fecha.getFullYear() === referencia.getFullYear() &&
@@ -57,7 +56,6 @@ const TablaProductosMasVendidos: React.FC = () => {
 
         let actuales = ventas;
 
-        // Fechas del periodo anterior
         const ayer = new Date(hoy);
         ayer.setDate(hoy.getDate() - 1);
 
@@ -70,7 +68,6 @@ const TablaProductosMasVendidos: React.FC = () => {
         const anioPasado = new Date(hoy);
         anioPasado.setFullYear(hoy.getFullYear() - 1);
 
-        // --- Aplicación de filtros ---
         if (filtro === "dia") {
           actuales = ventas.filter((v) => esMismoDia(new Date(v.fecha), hoy));
         } else if (filtro === "semana") {
@@ -97,7 +94,6 @@ const TablaProductosMasVendidos: React.FC = () => {
     load();
   }, [topN, filtro]);
 
-  // --- Calcular crecimiento ---
   const crecimiento = useMemo(() => {
     const totalActual = ventasActuales.reduce((acc, v) => acc + v.total, 0);
 
@@ -137,13 +133,12 @@ const TablaProductosMasVendidos: React.FC = () => {
     };
   }, [ventasActuales, filtro]);
 
-  // Función para formatear currency
+
   const formatCurrency = (n: number) => 
     n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   return (
     <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
         <div>
           <h3 className="text-xl font-bold text-gray-900">Productos Más Vendidos</h3>
@@ -191,7 +186,7 @@ const TablaProductosMasVendidos: React.FC = () => {
         </div>
       </div>
 
-      {/* Indicador de crecimiento */}
+
       {crecimiento.porcentaje !== null && (
         <div className={`flex items-center gap-2 mb-6 p-4 bg-gradient-to-r ${crecimiento.porcentaje >= 0 ? 'from-green-50 to-green-100 border border-green-200' : 'from-red-50 to-red-100 border border-red-200'} rounded-xl`}>
           <div className={`p-2 rounded-lg ${crecimiento.porcentaje >= 0 ? 'bg-green-500' : 'bg-red-500'}`}>
@@ -217,7 +212,6 @@ const TablaProductosMasVendidos: React.FC = () => {
         </div>
       )}
 
-      {/* Tabla */}
       {loading ? (
         <div className="flex items-center justify-center py-12">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>

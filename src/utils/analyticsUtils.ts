@@ -1,14 +1,11 @@
-// src/utils/analyticsUtils.ts
 import type { VentaResumenDTO, VentaDetalleResumenDTO } from "../types/VentaResumenDTO";
 
 export type SeriePunto = {
-  fecha: string; // YYYY-MM-DD (día) o YYYY-WW (semana) o YYYY-MM (mes) o YYYY (año)
+  fecha: string; 
   total: number;
 };
 
-/**
- * Agrupa ventas por día (fecha ISO yyyy-MM-dd)
- */
+
 export function agruparVentasPorDia(ventas: VentaResumenDTO[]): SeriePunto[] {
   const map = new Map<string, number>();
   for (const v of ventas) {
@@ -21,18 +18,13 @@ export function agruparVentasPorDia(ventas: VentaResumenDTO[]): SeriePunto[] {
   return arr;
 }
 
-/**
- * Agrupa ventas por semana ISO (YYYY-WW)
- */
 export function agruparVentasPorSemana(ventas: VentaResumenDTO[]): SeriePunto[] {
   const map = new Map<string, number>();
 
-  // --- Agrupar por año-semana ---
   for (const v of ventas) {
     const d = new Date(v.fecha ?? "");
     const tmp = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
 
-    // ISO week: mover al jueves de la semana
     tmp.setUTCDate(tmp.getUTCDate() + 4 - (tmp.getUTCDay() || 7));
 
     const yearStart = new Date(Date.UTC(tmp.getUTCFullYear(), 0, 1));
@@ -44,7 +36,6 @@ export function agruparVentasPorSemana(ventas: VentaResumenDTO[]): SeriePunto[] 
     map.set(key, current + Number(v.total ?? 0));
   }
 
-  // --- Convertir a rango legible ---
   const formatearSemana = (year: number, week: number): string => {
     const simple = new Date(Date.UTC(year, 0, 1 + (week - 1) * 7));
     const dow = simple.getUTCDay();
@@ -68,7 +59,6 @@ export function agruparVentasPorSemana(ventas: VentaResumenDTO[]): SeriePunto[] 
     return `${diaIni}–${diaFin} ${mes}`;
   };
 
-  // --- Crear arreglo con clave auxiliar ---
   const arr = Array.from(map.entries())
     .map(([key, total]) => {
       const [yearStr, weekStr] = key.split("-");
@@ -79,28 +69,21 @@ export function agruparVentasPorSemana(ventas: VentaResumenDTO[]): SeriePunto[] 
       return {
         fecha: rangoLegible,
         total,
-        orden: key // <-- clave para ordenar cronológicamente
+        orden: key 
       };
     });
 
-  // --- Ordenar cronológicamente ---
   arr.sort((a, b) => a.orden.localeCompare(b.orden));
 
-  // --- Elimina la clave auxiliar antes de devolver ---
   return arr.map(({ fecha, total }) => ({ fecha, total }));
 }
 
-
-
-/**
- * Agrupa ventas por mes (YYYY-MM)
- */
 export function agruparVentasPorMes(ventas: VentaResumenDTO[]): SeriePunto[] {
   const map = new Map<string, number>();
   for (const v of ventas) {
     const fecha = v.fecha ? v.fecha.split("T")[0] : new Date().toISOString().split("T")[0];
     const parts = fecha.split("-");
-    const key = `${parts[0]}-${parts[1]}`; // YYYY-MM
+    const key = `${parts[0]}-${parts[1]}`; 
     const current = map.get(key) ?? 0;
     map.set(key, current + Number(v.total ?? 0));
   }
@@ -109,9 +92,6 @@ export function agruparVentasPorMes(ventas: VentaResumenDTO[]): SeriePunto[] {
   return arr;
 }
 
-/**
- * Agrupa ventas por año (YYYY)
- */
 export function agruparVentasPorAnio(ventas: VentaResumenDTO[]): SeriePunto[] {
   const map = new Map<string, number>();
   for (const v of ventas) {
@@ -124,9 +104,6 @@ export function agruparVentasPorAnio(ventas: VentaResumenDTO[]): SeriePunto[] {
   return arr;
 }
 
-/**
- * Top productos — recibe ventas en formato DTO y extrae los detalles.
- */
 export function obtenerTopProductos(
   ventas: VentaResumenDTO[],
   topN: number
@@ -165,9 +142,6 @@ export function obtenerTopProductos(
   return arr.slice(0, topN);
 }
 
-/**
- * Suma totales de una serie
- */
 export function totalVentas(series: { fecha: string; total: number }[]) {
   return series.reduce((acc, s) => acc + Number(s.total ?? 0), 0);
 }

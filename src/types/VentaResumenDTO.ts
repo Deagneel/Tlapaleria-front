@@ -12,6 +12,6 @@ export interface VentaDetalleResumenDTO {
 export interface VentaResumenDTO {
   id: number;
   total: number;
-  fecha: string; // ISO datetime string
+  fecha: string; 
   detalles: VentaDetalleResumenDTO[];
 }

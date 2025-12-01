@@ -20,9 +20,7 @@ const MONTH_LABELS = [
   "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
 ];
 
-/* --------------------------------------------------------
-   TIPADO CORRECTO DEL TOOLTIP
--------------------------------------------------------- */
+
 type MyTooltipProps = {
   active?: boolean;
   payload?: {
@@ -35,9 +33,6 @@ type MyTooltipProps = {
   label?: string;
 };
 
-/* --------------------------------------------------------
-   CUSTOM TOOLTIP MEJORADO
--------------------------------------------------------- */
 const CustomTooltip: React.FC<MyTooltipProps> = ({ active, payload, label }) => {
   if (!active || !payload || payload.length === 0) return null;
 
@@ -80,9 +75,7 @@ const CustomTooltip: React.FC<MyTooltipProps> = ({ active, payload, label }) => 
   );
 };
 
-/* --------------------------------------------------------
-   COMPONENTE PRINCIPAL MODERNIZADO
--------------------------------------------------------- */
+
 const ComparadorMeses: React.FC = () => {
   const hoy = new Date();
   const [ventas, setVentas] = useState<VentaResumenDTO[]>([]);
@@ -142,20 +135,17 @@ const ComparadorMeses: React.FC = () => {
     return Array.from(s).sort((a, b) => b - a);
   }, [ventas]);
 
-  // Calcular diferencia y porcentaje para mostrar
   const diferencia = total1 - total2;
   const porcentaje = total2 !== 0 ? (diferencia / total2) * 100 : 0;
   const esPositivo = diferencia >= 0;
 
   return (
     <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6">
-      {/* Header */}
       <div className="mb-6">
         <h2 className="text-2xl font-bold text-gray-900">Comparador de Meses</h2>
         <p className="text-gray-600 mt-1">Análisis comparativo de ventas por período</p>
       </div>
 
-      {/* Controles Modernizados */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         
         {/* Mes A Comparar */}
@@ -285,7 +275,6 @@ const ComparadorMeses: React.FC = () => {
         </div>
       </div>
 
-      {/* Botones rápidos modernizados */}
       <div className="flex flex-wrap gap-3 mb-6">
         <button
           onClick={() => {

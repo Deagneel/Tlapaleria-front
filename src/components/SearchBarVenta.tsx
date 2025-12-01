@@ -15,7 +15,6 @@ const SearchBarVenta: React.FC<Props> = ({ onProductoSelect, focusCounter }) => 
   const [loading, setLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
-  // Auto-focus mejorado
   useEffect(() => { 
     inputRef.current?.focus(); 
   }, []);
@@ -47,7 +46,6 @@ const SearchBarVenta: React.FC<Props> = ({ onProductoSelect, focusCounter }) => 
         setQuery("");
         setResults([]);
         setNotFound(false);
-        // Auto-focus y selección después de agregar producto
         setTimeout(() => {
           inputRef.current?.focus();
           inputRef.current?.select();
@@ -76,7 +74,6 @@ const SearchBarVenta: React.FC<Props> = ({ onProductoSelect, focusCounter }) => 
     setQuery(""); 
     setResults([]); 
     setNotFound(false); 
-    // Auto-focus después de limpiar
     setTimeout(() => {
       inputRef.current?.focus();
       inputRef.current?.select();
@@ -94,7 +91,6 @@ const SearchBarVenta: React.FC<Props> = ({ onProductoSelect, focusCounter }) => 
     setResults([]);
     setQuery("");
     setNotFound(false);
-    // Auto-focus después de seleccionar producto
     setTimeout(() => {
       inputRef.current?.focus();
       inputRef.current?.select();
@@ -162,7 +158,6 @@ const SearchBarVenta: React.FC<Props> = ({ onProductoSelect, focusCounter }) => 
                             }
                           </span>
                           <span className="font-semibold text-green-600">${(producto.precio ?? 0).toFixed(2)}</span>
-                          {/* 🔥 INDICADOR DE PRODUCTO EMPAQUETADO */}
                           {producto.es_producto_paquete && (
                             <span className="bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded text-xs border border-orange-200 flex items-center gap-1">
                               <FiPackage size={10} />

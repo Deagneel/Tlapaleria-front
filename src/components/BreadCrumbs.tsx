@@ -11,7 +11,6 @@ interface Props {
 const BreadCrumbs: React.FC<Props> = ({ week, day, ventaId, onBack, onShowToday }) => {
   return (
     <div className="flex items-center gap-3 flex-wrap">
-      {/* Botón Regresar */}
       <button 
         onClick={onBack}
         className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 shadow-sm hover:shadow-md font-medium"
@@ -22,7 +21,6 @@ const BreadCrumbs: React.FC<Props> = ({ week, day, ventaId, onBack, onShowToday 
         Regresar
       </button>
 
-      {/* Botón Ventas de Hoy */}
       <button
         onClick={onShowToday}
         className="px-4 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-sm hover:shadow-md font-medium flex items-center gap-2"
@@ -33,7 +31,6 @@ const BreadCrumbs: React.FC<Props> = ({ week, day, ventaId, onBack, onShowToday 
         Ventas de Hoy
       </button>
 
-      {/* Breadcrumbs */}
       <div className="flex items-center gap-2 text-sm">
         {week && (
           <div className="flex items-center gap-2">

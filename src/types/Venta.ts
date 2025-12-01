@@ -7,7 +7,7 @@ export interface DetalleVentaDTO {
   precioIndividual: number;
   usarPrecioIndividual?: boolean;
   es_producto_empaquetado?: boolean;
-  vender_por_unidad?: boolean; // true = vender por pieza, false = vender por paquete
+  vender_por_unidad?: boolean; 
   cantidadModificadaManual?: boolean;
 }
 

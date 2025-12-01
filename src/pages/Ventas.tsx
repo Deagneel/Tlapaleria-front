@@ -258,7 +258,6 @@ const VentasPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Panel de Búsqueda */}
       <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-sm border border-gray-200 p-6 flex flex-col">
         <div className="flex items-center justify-between mb-6">
           <h2 className="font-bold text-xl text-gray-800 flex items-center gap-3">

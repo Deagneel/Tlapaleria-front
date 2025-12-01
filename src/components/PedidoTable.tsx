@@ -15,11 +15,11 @@ const PedidoTable: React.FC<Props> = ({ pedidos, onEditar, onEliminar }) => {
       case "PENDIENTE":
         return "bg-yellow-50 border-l-4 border-yellow-400 text-yellow-800"; 
       case "SURTIDO":
-        return "bg-blue-50 border-l-4 border-blue-400 text-blue-800";
+        return "bg-green-100 border-l-4 border-green-400 text-blue-800";
       case "ENTREGADO":
         return "bg-gray-100 border-l-4 border-gray-300 text-gray-500";
       default:
-        return "bg-white border-l-4 border-gray-300 text-gray-700"; // Cambiado a blanco por defecto
+        return "bg-white border-l-4 border-gray-300 text-gray-700"; 
     }
   };
 
@@ -41,7 +41,6 @@ const PedidoTable: React.FC<Props> = ({ pedidos, onEditar, onEliminar }) => {
 
   return (
     <div className="border border-gray-200 rounded-2xl overflow-hidden bg-white shadow-sm">
-      {/* Header de la tabla */}
       <div
         className="grid px-6 py-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold text-sm"
         style={{ gridTemplateColumns: "2fr 1.5fr 1fr 1fr 1.2fr" }}
@@ -74,18 +73,17 @@ const PedidoTable: React.FC<Props> = ({ pedidos, onEditar, onEliminar }) => {
             <p className="text-sm">Intenta ajustar los filtros o la búsqueda</p>
           </div>
         ) : (
-          pedidos.map((pedido) => { // Quitamos el index ya que no lo usamos
+          pedidos.map((pedido) => { 
             const fechaPedido = pedido.fecha ? new Date(pedido.fecha) : null;
 
             return (
               <div
                 key={pedido.id}
-                className={`grid px-6 py-4 items-center border-b border-gray-100 hover:bg-blue-50 transition-all duration-200 ${getColorClass(
+                className={`grid px-6 py-4 items-center border-b border-gray-100 hover:bg-blue-200 transition-all duration-200 ${getColorClass(
                   pedido.estado
-                )}`} // Eliminamos la parte de cebra aquí
+                )}`} 
                 style={{ gridTemplateColumns: "2fr 1.5fr 1fr 1fr 1.2fr", minHeight: 70 }}
               >
-                {/* Cliente */}
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
                     <User size={18} className="text-blue-600" />
@@ -95,7 +93,6 @@ const PedidoTable: React.FC<Props> = ({ pedidos, onEditar, onEliminar }) => {
                   </div>
                 </div>
 
-                {/* Fecha */}
                 <div className="text-gray-700">
                   {fechaPedido ? (
                     <div>
@@ -111,21 +108,18 @@ const PedidoTable: React.FC<Props> = ({ pedidos, onEditar, onEliminar }) => {
                   )}
                 </div>
 
-                {/* Estado */}
                 <div>
                   <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium capitalize ${getEstadoBadge(pedido.estado)}`}>
                     {pedido.estado || "Sin estado"}
                   </span>
                 </div>
 
-                {/* Total */}
                 <div className="text-right pr-4">
                   <div className="font-bold text-green-600 text-lg">
                     ${formatCurrency(Number(pedido.total ?? 0))}
                   </div>
                 </div>
 
-                {/* Acciones */}
                 <div className="flex justify-center gap-2">
                   {pedido.estado?.toUpperCase() !== "ENTREGADO" && (
                     <button

@@ -128,7 +128,7 @@ const Inventario: React.FC = () => {
     }
   };
 
-  // ============================
+
   return (
     <Layout>
       <div className="flex justify-between items-center mb-6">

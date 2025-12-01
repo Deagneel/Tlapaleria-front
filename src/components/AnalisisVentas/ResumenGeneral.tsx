@@ -24,20 +24,20 @@ const ResumenGeneral: React.FC = () => {
     load();
   }, []);
 
-  // --- Ventas por día ---
+
   const ventasPorDia = agruparVentasPorDia(ventas);
 
-  // --- Ventas del día ---
+
   const hoyIso = new Date().toISOString().split("T")[0];
   const ventasHoy = ventasPorDia.find((d) => d.fecha === hoyIso)?.total ?? 0;
 
-  // --- Promedio diario últimos 30 días ---
+
   const ultimoMes = ventasPorDia.slice(-30);
   const promedioDiario = ultimoMes.length === 0
     ? 0
     : Number((totalVentas(ultimoMes) / ultimoMes.length).toFixed(2));
 
-  // --- Ventas del mes actual ---
+
   const ahora = new Date();
   const mesActual = ahora.getMonth();
   const añoActual = ahora.getFullYear();
@@ -50,12 +50,12 @@ const ResumenGeneral: React.FC = () => {
     })
     .reduce((acc, v) => acc + Number(v.total ?? 0), 0);
 
-  // --- Indicadores de tendencia ---
+
   const ayerIso = new Date(Date.now() - 86400000).toISOString().split("T")[0];
   const ventasAyer = ventasPorDia.find((d) => d.fecha === ayerIso)?.total ?? 0;
   const tendenciaHoy = ventasAyer > 0 ? ((ventasHoy - ventasAyer) / ventasAyer) * 100 : 0;
 
-  // Mes anterior para comparación
+
   const mesAnterior = mesActual === 0 ? 11 : mesActual - 1;
   const añoMesAnterior = mesActual === 0 ? añoActual - 1 : añoActual;
   
@@ -142,7 +142,7 @@ const ResumenGeneral: React.FC = () => {
       <MetricCard
         title="Promedio diario"
         value={`$${promedioDiario.toFixed(2)}`}
-        icon={Target}  // Cambiado de TrendingUp a Target
+        icon={Target} 
         description="Últimos 30 días"
       />
 
