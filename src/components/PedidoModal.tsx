@@ -17,7 +17,7 @@ interface Props {
   onClose: () => void;
   onGuardado: () => void;
 }
-
+ 
 interface DetalleTemp {
   id?: number;
   producto: Producto;
@@ -544,95 +544,123 @@ const PedidoModal: React.FC<Props> = ({ pedido, onClose, onGuardado }) => {
   };
 
   const handleSubmit = async (
-  e?: React.FormEvent,
-  nuevoEstado?: "PENDIENTE" | "SURTIDO" | "ENTREGADO"
-) => {
-  if (e) e.preventDefault();
+    e?: React.FormEvent,
+    nuevoEstado?: "PENDIENTE" | "SURTIDO" | "ENTREGADO"
+  ) => {
+    if (e) e.preventDefault();
 
-  try {
-    const estadoDestino = nuevoEstado ?? (pedido?.estado || "PENDIENTE");
-    const debeSumarExistencia = estadoDestino === "SURTIDO" || estadoDestino === "ENTREGADO";
+    try {
+      const estadoDestino = nuevoEstado ?? (pedido?.estado || "PENDIENTE");
+      const debeSumarExistencia = estadoDestino === "SURTIDO" || estadoDestino === "ENTREGADO";
 
-    const totalSubtotal = detalles.reduce(
-      (acc, d) => acc + (d.producto.costo ?? 0) * (d.cantidad ?? 0),
-      0
-    );
+      const totalSubtotal = detalles.reduce(
+        (acc, d) => acc + (d.producto.costo ?? 0) * (d.cantidad ?? 0),
+        0
+      );
 
-    const pedidoBackend: PedidoDTO = {
-      cliente,
-      total: totalSubtotal,
-      estado: estadoDestino,
-      detalles: detalles.map((d) => ({
-        id: d.id,
-        producto_id: d.producto.id,
-        cantidad: d.cantidad,
-        precio: d.precio,
-        recibido: d.recibido ?? false, // 🔹 AQUÍ ESTÁ LA CORRECCIÓN - incluir el estado recibido
-      })),
-    };
+      const pedidoBackend: PedidoDTO = {
+        cliente,
+        total: totalSubtotal,
+        estado: estadoDestino,
+        detalles: detalles.map((d) => ({
+          id: d.id,
+          producto_id: d.producto.id,
+          cantidad: d.cantidad,
+          precio: d.precio,
+          recibido: d.recibido ?? false,
+        })),
+      };
 
-    if (!pedido?.id) {
-      await crearPedido(pedidoBackend);
-    } else {
-      await actualizarPedido(pedido.id!, pedidoBackend);
-    }
+      if (!pedido?.id) {
+        await crearPedido(pedidoBackend);
+      } else {
+        await actualizarPedido(pedido.id!, pedidoBackend);
+      }
 
-    if (debeSumarExistencia) {
-      for (const d of detalles) {
-        if (!d.recibido) continue;
+      if (debeSumarExistencia) {
+        for (const d of detalles) {
+          if (!d.recibido) continue;
 
-        try {
-          const productoActualizado = productosDisponibles.find(p => p.id === d.producto.id);
-          const existenciaActual = productoActualizado?.existencia ?? d.producto.existencia ?? 0;
+          try {
+            const productoActualizado = productosDisponibles.find(p => p.id === d.producto.id);
+            const existenciaActual = productoActualizado?.existencia ?? d.producto.existencia ?? 0;
+            const piezasIndividualesActuales = productoActualizado?.piezas_individuales ?? d.producto.piezas_individuales ?? 0;
+            const piezasPorPaquete = productoActualizado?.piezas_por_paquete ?? d.producto.piezas_por_paquete ?? 1;
+            const esProductoPaquete = productoActualizado?.es_producto_paquete ?? d.producto.es_producto_paquete ?? false;
 
-          const debeSumarExistencia = nuevoEstado === "ENTREGADO";
+            const debeSumarExistencia = nuevoEstado === "ENTREGADO";
 
-          const nuevaExistencia = debeSumarExistencia
-            ? existenciaActual + d.cantidad
-            : existenciaActual;
+            // 🔥 CORREGIR: Si la existencia es negativa, empezar desde 0
+            let nuevaExistencia;
+            if (debeSumarExistencia) {
+              if (existenciaActual < 0) {
+                nuevaExistencia = d.cantidad; // Empezar desde 0 + cantidad recibida
+                console.log("🔄 Frontend: Existencia negativa corregida", 
+                  d.producto.descripcion, "de", existenciaActual, "a", nuevaExistencia);
+              } else {
+                nuevaExistencia = existenciaActual + d.cantidad; // Sumar normalmente
+              }
+            } else {
+              nuevaExistencia = existenciaActual;
+            }
 
-          const prodToUpdate: Omit<Producto, "id"> = {
-            clave: d.producto.clave,
-            descripcion: d.producto.descripcion,
-            codigo_barras: d.producto.codigo_barras ?? "",
-            costo: d.precio,
-            precio: d.precioEditable ?? d.producto.precio,
-            precio_individual: d.precioIndividualEditable ?? d.producto.precio_individual ?? 0,
-            existencia: nuevaExistencia,
-            existencia_min: productoActualizado?.existencia_min ?? d.producto.existencia_min ?? 0,
-            unidad: productoActualizado?.unidad ?? d.producto.unidad ?? "",
-            activo: d.producto.activo ?? true,
-          };
+            // 🔥 CORREGIR PIEZAS INDIVIDUALES: Si son negativas, reiniciar con piezas_por_paquete
+            let nuevasPiezasIndividuales = piezasIndividualesActuales;
+            if (debeSumarExistencia && esProductoPaquete) {
+              if (piezasIndividualesActuales < 0) {
+                nuevasPiezasIndividuales = piezasPorPaquete;
+                console.log("🔄 Frontend: Piezas individuales negativas reiniciadas", 
+                  d.producto.descripcion, "de", piezasIndividualesActuales, "a", nuevasPiezasIndividuales);
+              }
+              // Si no son negativas, se mantienen las piezas actuales
+            }
 
-          await actualizarProducto(d.producto.id, prodToUpdate);
-        } catch (err) {
-          console.error("No se pudo actualizar producto", d.producto.id, err);
+            const prodToUpdate: Omit<Producto, "id"> = {
+              clave: d.producto.clave,
+              descripcion: d.producto.descripcion,
+              codigo_barras: d.producto.codigo_barras ?? "",
+              costo: d.precio,
+              precio: d.precioEditable ?? d.producto.precio,
+              precio_individual: d.precioIndividualEditable ?? d.producto.precio_individual ?? 0,
+              existencia: nuevaExistencia,
+              existencia_min: productoActualizado?.existencia_min ?? d.producto.existencia_min ?? 0,
+              unidad: productoActualizado?.unidad ?? d.producto.unidad ?? "",
+              activo: d.producto.activo ?? true,
+              // 🔥 CAMPOS DE PRODUCTOS EMPAQUETADOS CON LÓGICA CORREGIDA
+              es_producto_paquete: esProductoPaquete,
+              piezas_por_paquete: piezasPorPaquete,
+              piezas_individuales: nuevasPiezasIndividuales, // 🔥 Usamos el valor corregido
+            };
+
+            await actualizarProducto(d.producto.id, prodToUpdate);
+          } catch (err) {
+            console.error("No se pudo actualizar producto", d.producto.id, err);
+          }
         }
       }
-    }
 
-    if (estadoDestino === "ENTREGADO") {
-      const temporalesDelPedido = detalles
-        .map((d) => d.producto)
-        .filter((p) => p.activo === false);
+      if (estadoDestino === "ENTREGADO") {
+        const temporalesDelPedido = detalles
+          .map((d) => d.producto)
+          .filter((p) => p.activo === false);
 
-      for (const prod of temporalesDelPedido) {
-        try {
-          await eliminarProducto(prod.id);
-          console.log(`Producto temporal eliminado: ${prod.descripcion} (${prod.clave})`);
-        } catch (err) {
-          console.error("Error al eliminar producto temporal:", prod.id, err);
+        for (const prod of temporalesDelPedido) {
+          try {
+            await eliminarProducto(prod.id);
+            console.log(`Producto temporal eliminado: ${prod.descripcion} (${prod.clave})`);
+          } catch (err) {
+            console.error("Error al eliminar producto temporal:", prod.id, err);
+          }
         }
       }
-    }
 
-    onGuardado();
-    onClose();
-  } catch (error) {
-    console.error("Error al guardar pedido:", error);
-    alert("Ocurrió un error al guardar el pedido.");
-  }
-};
+      onGuardado();
+      onClose();
+    } catch (error) {
+      console.error("Error al guardar pedido:", error);
+      alert("Ocurrió un error al guardar el pedido.");
+    }
+  };
 
   const abrirProductoModalPara = (producto: Producto | null) => {
     setProductoParaEditar(producto);
@@ -776,7 +804,7 @@ const PedidoModal: React.FC<Props> = ({ pedido, onClose, onGuardado }) => {
                         <button
                           type="button"
                           onClick={() => setTextoBusqueda("")}
-                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                          className="absolute bg-gray-200 right-3 top-1/2 transform -translate-y-1/2 text-gray-800 hover:text-gray-600"
                         >
                           <X size={18} />
                         </button>
@@ -881,7 +909,7 @@ const PedidoModal: React.FC<Props> = ({ pedido, onClose, onGuardado }) => {
                         <button
                           type="button"
                           onClick={() => setBusquedaInterna("")}
-                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                          className="absolute bg-gray-200 right-3 top-1/2 transform -translate-y-1/2 text-gray-800 hover:text-gray-600"
                         >
                           <X size={18} />
                         </button>

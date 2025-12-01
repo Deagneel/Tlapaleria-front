@@ -1,6 +1,6 @@
 import type { Producto } from "../types/Producto";
 
-//const API_URL = "http://localhost:8080/api/productos";
+
 const API_URL = import.meta.env.VITE_API_URL + "/productos";
 
 interface ProductoBackend {
@@ -15,6 +15,9 @@ interface ProductoBackend {
   existencia_min?: number | null;
   unidad?: string | null;
   activo?: boolean | null;
+  esProductoPaquete?: boolean | null;
+  piezasPorPaquete?: number | null;
+  piezasIndividuales?: number | null;
 }
 
 const mapearProducto = (p: ProductoBackend): Producto => ({
@@ -29,6 +32,9 @@ const mapearProducto = (p: ProductoBackend): Producto => ({
   existencia_min: p.existencia_min ?? 0,
   unidad: p.unidad ?? "",
   activo: p.activo ?? true,
+  es_producto_paquete: p.esProductoPaquete ?? false,
+  piezas_por_paquete: p.piezasPorPaquete ?? 1,
+  piezas_individuales: p.piezasIndividuales ?? 0,
 });
 
 export const obtenerProductos = async (): Promise<Producto[]> => {
@@ -49,6 +55,9 @@ const mapearAFormatoBackend = (producto: Omit<Producto, "id">) => ({
   existencia_min: producto.existencia_min ?? 0,
   unidad: producto.unidad ?? "",
   activo: producto.activo ?? true,
+  esProductoPaquete: producto.es_producto_paquete ?? false,
+  piezasPorPaquete: producto.piezas_por_paquete ?? 1,
+  piezasIndividuales: producto.piezas_individuales ?? 0,
 });
  
 export const crearProducto = async (producto: Omit<Producto, "id">): Promise<Producto> => {

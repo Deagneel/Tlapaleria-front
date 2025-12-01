@@ -21,6 +21,9 @@ const ProductoModal: React.FC<Props> = ({ producto, onClose, onGuardado }) => {
     existencia_min: 0,
     unidad: "",
     activo: true,
+    es_producto_paquete: false,
+    piezas_por_paquete: 1,
+    piezas_individuales: 0,
   });
 
   useEffect(() => {
@@ -68,6 +71,9 @@ const ProductoModal: React.FC<Props> = ({ producto, onClose, onGuardado }) => {
         existencia_min: producto.existencia_min,
         unidad: producto.unidad,
         activo: producto.activo,
+        es_producto_paquete: producto.es_producto_paquete ?? false,
+        piezas_por_paquete: producto.piezas_por_paquete ?? 1,
+        piezas_individuales: producto.piezas_individuales ?? 0,
       });
     }
   }, [producto]);
@@ -98,7 +104,7 @@ const ProductoModal: React.FC<Props> = ({ producto, onClose, onGuardado }) => {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
-        {/* Header */}
+        {/* Header - SIN CAMBIOS */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-blue-600 to-blue-700 text-white">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-white/20 rounded-lg">
@@ -133,7 +139,7 @@ const ProductoModal: React.FC<Props> = ({ producto, onClose, onGuardado }) => {
           className="p-6 overflow-auto max-h-[calc(90vh-80px)]"
         >
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Columna Izquierda */}
+            {/* Columna Izquierda - SIN CAMBIOS */}
             <div className="space-y-4">
               {/* Clave */}
               <div className="space-y-2">
@@ -186,11 +192,10 @@ const ProductoModal: React.FC<Props> = ({ producto, onClose, onGuardado }) => {
                   placeholder="Escanea o ingresa el código"
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all duration-200 bg-white text-gray-900 placeholder-gray-500"
                 />
-
               </div>
             </div>
 
-            {/* Columna Derecha - Precios */}
+            {/* Columna Derecha - SIN CAMBIOS */}
             <div className="space-y-4">
               {/* Costo */}
               <div className="space-y-2">
@@ -258,7 +263,79 @@ const ProductoModal: React.FC<Props> = ({ producto, onClose, onGuardado }) => {
             </div>
           </div>
 
-          {/* Campos Adicionales - Acordeón */}
+          {/* 🔥 NUEVA SECCIÓN: Producto Empaquetado */}
+          <div className="mt-6">
+            <details className="group bg-gradient-to-r from-orange-50 to-orange-100 rounded-xl border border-orange-200 overflow-hidden">
+              <summary className="cursor-pointer p-4 flex items-center justify-between text-gray-700 hover:bg-white/50 transition-all duration-200">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-orange-100 rounded-lg">
+                    <Package size={18} className="text-orange-600" />
+                  </div>
+                  <div>
+                    <span className="font-semibold text-gray-900">Producto Empaquetado</span>
+                    <p className="text-sm text-gray-600">Configuración para productos que se venden por unidad</p>
+                  </div>
+                </div>
+                <div className="transform group-open:rotate-180 transition-transform duration-200">
+                  <ChevronDown size={20} className="text-orange-400" />
+                </div>
+              </summary>
+              
+              <div className="p-4 border-t border-orange-200 bg-white">
+                <div className="space-y-4">
+                  {/* Checkbox para producto empaquetado */}
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      name="es_producto_paquete"
+                      checked={form.es_producto_paquete}
+                      onChange={handleChange}
+                      className="w-4 h-4 text-orange-600 bg-gray-100 border-gray-300 rounded focus:ring-orange-500 focus:ring-2"
+                    />
+                    <label className="text-sm font-medium text-gray-700">
+                      ¿Es producto empaquetado?
+                    </label>
+                  </div>
+
+                  {/* Campos condicionales */}
+                  {form.es_producto_paquete && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pl-6 border-l-2 border-orange-200">
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-gray-700">
+                          Piezas por paquete *
+                        </label>
+                        <input
+                          name="piezas_por_paquete"
+                          type="number"
+                          value={form.piezas_por_paquete}
+                          onChange={handleChange}
+                          min="1"
+                          required
+                          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all duration-200 bg-white text-gray-900"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-gray-700">
+                          Piezas individuales en stock
+                        </label>
+                        <input
+                          name="piezas_individuales"
+                          type="number"
+                          value={form.piezas_individuales}
+                          onChange={handleChange}
+                          min="0"
+                          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all duration-200 bg-white text-gray-900"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </details>
+          </div>
+
+          {/* Sección de Inventario existente - SIN CAMBIOS */}
           <div className="mt-6">
             <details className="group bg-gradient-to-r from-gray-50 to-blue-50 rounded-xl border border-gray-200 overflow-hidden">
               <summary className="cursor-pointer p-4 flex items-center justify-between text-gray-700 hover:bg-white/50 transition-all duration-200">
@@ -312,7 +389,7 @@ const ProductoModal: React.FC<Props> = ({ producto, onClose, onGuardado }) => {
             </details>
           </div>
 
-          {/* Botones */}
+          {/* Botones - SIN CAMBIOS */}
           <div className="flex justify-end gap-3 mt-8 pt-6 border-t border-gray-200">
             <button 
               type="button" 

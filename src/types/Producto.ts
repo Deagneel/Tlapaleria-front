@@ -11,4 +11,7 @@ export interface Producto {
   existencia_min?: number;  
   unidad: string;
   activo: boolean;
+  es_producto_paquete?: boolean;
+  piezas_por_paquete?: number;
+  piezas_individuales?: number;
 }

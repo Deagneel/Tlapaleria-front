@@ -35,53 +35,140 @@ const VentasPage: React.FC = () => {
 
   const subtotal = useMemo(() => {
     const val = cart.reduce((s, d) => {
-      const precioActivo = d.usarPrecioIndividual ? d.precioIndividual : d.precio;
+      const producto = productos.find(p => p.id === d.producto_id);
+      const esProductoEmpaquetado = producto?.es_producto_paquete ?? false;
+      
+      let precioActivo = d.precio;
+      
+      if (esProductoEmpaquetado) {
+        if (d.vender_por_unidad) {
+          precioActivo = d.precioIndividual;
+        }
+      } else {
+        if (d.usarPrecioIndividual) {
+          precioActivo = d.precioIndividual;
+        }
+      }
+      
       return s + precioActivo * d.cantidad;
     }, 0);
     return isNaN(val) ? 0 : val;
-  }, [cart]);
+  }, [cart, productos]);
 
   const total = subtotal + (isNaN(cargoExtra) ? 0 : cargoExtra ?? 0);
 
   const addProduct = (p: Producto, cantidad = 1) => {
     setCart(prev => {
       const idx = prev.findIndex(x => x.producto_id === p.id);
-      const precioIndividualValido = p.precio_individual != null && p.precio_individual > 0;
+      const esProductoEmpaquetado = p.es_producto_paquete ?? false;
+      const tienePrecioIndividual = (p.precio_individual ?? 0) > 0;
+      
+      const precioPaquete = p.precio ?? 0;
+      const precioIndividual = p.precio_individual ?? p.precio ?? 0;
 
       if (idx >= 0) {
         const copy = [...prev];
-        copy[idx] = { ...copy[idx], cantidad: copy[idx].cantidad + cantidad };
+
+        copy[idx] = { 
+          ...copy[idx], 
+          cantidad: copy[idx].cantidad + (esProductoEmpaquetado ? 1 : cantidad),
+          cantidadModificadaManual: true 
+        };
         return copy;
+      }
+
+      let usarPrecioIndividual = false;
+      let venderPorUnidad = false;
+      let precioInicial = precioPaquete;
+      
+      if (esProductoEmpaquetado) {
+        venderPorUnidad = tienePrecioIndividual;
+        if (venderPorUnidad) {
+          precioInicial = precioIndividual;
+        }
+      } else {
+        usarPrecioIndividual = tienePrecioIndividual;
+        if (usarPrecioIndividual) {
+          precioInicial = precioIndividual;
+        }
       }
 
       return [
         ...prev, 
         { 
           producto_id: p.id, 
-          cantidad, 
-          precio: p.precio ?? 0, 
-          precioIndividual: p.precio_individual ?? p.precio ?? 0,
-          usarPrecioIndividual: precioIndividualValido
+          cantidad: esProductoEmpaquetado ? 1 : cantidad,
+          precio: precioInicial,
+          precioIndividual: precioIndividual,
+          usarPrecioIndividual: usarPrecioIndividual,
+          vender_por_unidad: venderPorUnidad,
+          es_producto_empaquetado: esProductoEmpaquetado,
+          cantidadModificadaManual: false 
         }
       ];
     });
   };
 
-  // 🔹 AGREGAR AUTO-FOCUS AL ELIMINAR PRODUCTO
   const removeLine = (productoId: number) => {
     setCart(prev => prev.filter(p => p.producto_id !== productoId));
     setFocusCounter(prev => prev + 1);
   };
 
+
   const changeQty = (productoId: number, cantidad: number) => {
     if (cantidad <= 0) return;
-    setCart(prev => prev.map(p => p.producto_id === productoId ? { ...p, cantidad } : p));
+    setCart(prev => prev.map(p => 
+      p.producto_id === productoId ? { 
+        ...p, 
+        cantidad,
+        cantidadModificadaManual: true 
+      } : p
+    ));
   };
 
   const togglePrecioIndividual = (productoId: number, usarIndividual: boolean) => {
     setCart(prev => prev.map(d => d.producto_id === productoId ? { ...d, usarPrecioIndividual: usarIndividual } : d));
   };
 
+
+  const toggleVentaPorUnidad = (productoId: number, venderPorUnidad: boolean) => {
+    setCart(prev => prev.map(d => {
+      if (d.producto_id === productoId) {
+        const producto = productos.find(p => p.id === productoId);
+        const esProductoEmpaquetado = producto?.es_producto_paquete ?? false;
+        
+        if (!esProductoEmpaquetado) return d;
+        
+        let nuevaCantidad = d.cantidad;
+        let nuevoPrecio = d.precio;
+        
+
+        if (!d.cantidadModificadaManual) {
+          if (venderPorUnidad && !d.vender_por_unidad) {
+            nuevaCantidad = d.cantidad * (producto?.piezas_por_paquete ?? 1);
+            nuevoPrecio = producto?.precio_individual ?? producto?.precio ?? 0;
+          } else if (!venderPorUnidad && d.vender_por_unidad) {
+            nuevaCantidad = Math.ceil(d.cantidad / (producto?.piezas_por_paquete ?? 1));
+            nuevoPrecio = producto?.precio ?? 0;
+          }
+        } else {
+          if (venderPorUnidad && !d.vender_por_unidad) {
+            nuevoPrecio = producto?.precio_individual ?? producto?.precio ?? 0;
+          } else if (!venderPorUnidad && d.vender_por_unidad) {
+            nuevoPrecio = producto?.precio ?? 0;
+          }
+        }
+        
+        return { 
+          ...d, 
+          vender_por_unidad: venderPorUnidad,
+          cantidad: nuevaCantidad,
+          precio: nuevoPrecio
+        };
+      }
+      return d;
+    }));
+  };
 
   const onConfirmVenta = async () => {
     if (cart.length === 0) {
@@ -91,37 +178,54 @@ const VentasPage: React.FC = () => {
 
     setProcessing(true);
     try {
-      const payload: VentaDTO = {
-        detalles: cart.map(d => ({
+      const detallesCorregidos = cart.map(d => {
+        const producto = productos.find(p => p.id === d.producto_id);
+        const esProductoEmpaquetado = producto?.es_producto_paquete ?? false;
+        
+        let precioFinal = d.precio;
+        
+        if (esProductoEmpaquetado && d.vender_por_unidad) {
+          precioFinal = d.precioIndividual;
+        } else if (!esProductoEmpaquetado && d.usarPrecioIndividual) {
+          precioFinal = d.precioIndividual;
+        }
+        
+        return {
           producto_id: d.producto_id,
           cantidad: d.cantidad,
-          precio: d.usarPrecioIndividual ? d.precioIndividual : d.precio,
-          precioIndividual: d.precioIndividual
-        })),
+          precio: precioFinal,
+          precioIndividual: d.precioIndividual,
+          usarPrecioIndividual: d.usarPrecioIndividual,
+          vender_por_unidad: d.vender_por_unidad,
+          es_producto_empaquetado: d.es_producto_empaquetado
+        };
+      });
+
+      const payload: VentaDTO = {
+        detalles: detallesCorregidos,
         cargo_extra: cargoExtra,
         pago_con: pagoCon ?? 0,
         total
       };
+      
       const resp: VentaResponse = await crearVenta(payload);
       setLowStock(resp.lowStock ?? []);
       setCart([]);
       setCargoExtra(0);
       setPagoCon(undefined);
-      alert("✅ Venta registrada exitosamente (ID: " + (resp.venta?.id ?? "N/A") + ")");
       setFocusCounter(prev => prev + 1);
     } catch (err: unknown) {
       console.error("Error guardando venta", err);
       let message = "Error desconocido";
       if (axios.isAxiosError(err)) message = err.response?.data?.message ?? err.message;
       else if (err instanceof Error) message = err.message;
-      alert("❌ Error: " + message);
+      alert(" Error: " + message);
       setFocusCounter(prev => prev + 1);
     } finally {
       setProcessing(false);
     }
   };
 
-  // 🔹 AGREGAR AUTO-FOCUS AL VACIAR CARRITO Y CAMBIAR COLOR DEL BOTÓN
   const clearCart = () => {
     if (cart.length === 0) return;
     if (window.confirm(`¿Estás seguro de vaciar el carrito? Se eliminarán ${cart.length} producto(s).`)) {
@@ -166,7 +270,6 @@ const VentasPage: React.FC = () => {
           {cart.length > 0 && (
             <button
               onClick={clearCart}
-              // 🔹 CAMBIAR COLOR DEL BOTÓN A GRIS CLARO
               className="text-sm text-red-600 hover:text-red-700 bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded-lg transition-colors border border-gray-300"
             >
               Vaciar carrito
@@ -181,7 +284,6 @@ const VentasPage: React.FC = () => {
           />
         </div>
 
-        {/* Información de productos cargados */}
         <div className="mt-6 p-3 bg-gray-50 rounded-xl border border-gray-200">
           <p className="text-sm text-gray-600">
             <span className="font-semibold text-gray-800">{productos.length}</span> productos cargados
@@ -189,7 +291,6 @@ const VentasPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Panel del Carrito */}
       <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-sm border border-gray-200 p-6 flex flex-col overflow-hidden">
         <div className="flex items-center justify-between mb-6">
           <h2 className="font-bold text-xl text-gray-800 flex items-center gap-3">
@@ -198,8 +299,6 @@ const VentasPage: React.FC = () => {
             </div>
             Carrito de Venta
           </h2>
-          <div className="flex items-center gap-2">
-          </div>
         </div>
         
         <div className="flex-1 overflow-auto">
@@ -209,11 +308,11 @@ const VentasPage: React.FC = () => {
             onCantidadChange={changeQty}
             onRemove={removeLine}
             onTogglePrecioIndividual={togglePrecioIndividual}
-            onFocusSearch={() => setFocusCounter(prev => prev + 1)} // 🔹 NUEVO: AUTO-FOCUS PARA BOTONES +/-
+            onToggleVentaPorUnidad={toggleVentaPorUnidad}
+            onFocusSearch={() => setFocusCounter(prev => prev + 1)}
           />
         </div>
 
-        {/* Resumen rápido */}
         <div className="mt-6 space-y-3 pt-4 border-t border-gray-200">
           <div className="flex justify-between items-center text-lg">
             <span className="text-gray-600 font-medium">Subtotal:</span>
@@ -228,7 +327,6 @@ const VentasPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Panel de Cobro - MÁS ANCHO */}
       <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-sm border border-gray-200 p-6 flex flex-col">
         <h2 className="font-bold text-xl text-gray-800 flex items-center gap-3 mb-6">
           <div className="p-2 bg-purple-100 text-purple-600 rounded-xl">
@@ -249,11 +347,10 @@ const VentasPage: React.FC = () => {
             lowStock={lowStock}
             processing={processing}
             cartCount={cart.length}
-            onFocusSearch={() => setFocusCounter(prev => prev + 1)} // 🔹 AGREGAR ESTA LÍNEA
+            onFocusSearch={() => setFocusCounter(prev => prev + 1)}
           />
         </div>
 
-        {/* Información adicional */}
         <div className="mt-6 space-y-2 text-xs text-gray-500">
           {processing && (
             <div className="flex items-center gap-2 text-blue-600 font-medium">

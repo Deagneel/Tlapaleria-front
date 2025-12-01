@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import type { Producto } from "../types/Producto";
 import { obtenerProductos } from "../api/productos";
-import { FiSearch, FiX, FiAlertCircle, FiBox } from "react-icons/fi";
+import { FiSearch, FiX, FiAlertCircle, FiBox, FiPackage } from "react-icons/fi";
 
 interface Props {
   onProductoSelect: (p: Producto) => void;
@@ -152,14 +152,24 @@ const SearchBarVenta: React.FC<Props> = ({ onProductoSelect, focusCounter }) => 
                   <div className="flex items-center justify-between">
                     <div className="flex-1 min-w-0">
                       <div className="font-semibold text-gray-800 truncate">{producto.descripcion}</div>
-                      <div className="flex items-center gap-4 text-sm text-gray-600 mt-1">
-                        <span className="font-mono bg-gray-100 px-2 py-1 rounded">#{producto.clave}</span>
-                        <span className="flex items-center gap-1">
-                          <FiBox size={12} />
-                          {producto.existencia ?? 0} exist.
-                        </span>
-                        <span className="font-semibold text-green-600">${(producto.precio ?? 0).toFixed(2)}</span>
-                      </div>
+                        <div className="flex items-center gap-4 text-sm text-gray-600 mt-1">
+                          <span className="font-mono bg-gray-100 px-2 py-1 rounded">#{producto.clave}</span>
+                          <span className="flex items-center gap-1">
+                            <FiBox size={12} />
+                            {producto.es_producto_paquete 
+                              ? `${producto.existencia ?? 0} paq.` 
+                              : `${producto.existencia ?? 0} exist.`
+                            }
+                          </span>
+                          <span className="font-semibold text-green-600">${(producto.precio ?? 0).toFixed(2)}</span>
+                          {/* 🔥 INDICADOR DE PRODUCTO EMPAQUETADO */}
+                          {producto.es_producto_paquete && (
+                            <span className="bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded text-xs border border-orange-200 flex items-center gap-1">
+                              <FiPackage size={10} />
+                              {producto.piezas_por_paquete}pz
+                            </span>
+                          )}
+                        </div>
                     </div>
                     {producto.codigo_barras && (
                       <div className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded ml-2">

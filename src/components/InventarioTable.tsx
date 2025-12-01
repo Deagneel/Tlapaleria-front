@@ -35,6 +35,29 @@ const InventarioTable: React.FC<Props> = ({ productos, onEditar, onEliminar, onA
     return "Otros";
   };
 
+  const calcularExistenciaReal = (producto: Producto): number => {
+    if (producto.es_producto_paquete) {
+      return ((producto.existencia ?? 0) * (producto.piezas_por_paquete ?? 1)) + (producto.piezas_individuales ?? 0);
+    }
+    return producto.existencia ?? 0;
+  };
+
+  const formatearExistencia = (producto: Producto): string => {
+    if (producto.es_producto_paquete) {
+      const paquetes = producto.existencia ?? 0;
+      const piezasIndividuales = producto.piezas_individuales ?? 0;
+      
+      if (paquetes > 0 && piezasIndividuales > 0) {
+        return `${paquetes} paq. + ${piezasIndividuales} pz.`;
+      } else if (paquetes > 0) {
+        return `${paquetes} paquetes`;
+      } else {
+        return `${piezasIndividuales} piezas`;
+      }
+    }
+    return `${producto.existencia ?? 0} ${producto.unidad || 'unidades'}`;
+  };
+
   const productosFiltrados = useMemo(() => {
     const filtrados = productos
       .filter((p) => filtroCategoria === "Todos" || categoriaPorClave(p.clave) === filtroCategoria)
@@ -271,24 +294,46 @@ const InventarioTable: React.FC<Props> = ({ productos, onEditar, onEliminar, onA
                             {producto.codigo_barras || "N/A"}
                           </span>
                         </div>
+                        
+                        {/* 🔥 EXISTENCIA ACTUALIZADA */}
                         <div className={`flex items-center gap-2 ${agotado ? 'text-red-600 font-semibold' : ''}`}>
                           <span className="font-semibold">Existencia:</span>
                           <span className="bg-white px-2 py-1 rounded border border-gray-200">
-                            {producto.existencia}
+                            {formatearExistencia(producto)}
+                            {producto.es_producto_paquete && (
+                              <span className="text-xs text-gray-500 ml-1">
+                                ({calcularExistenciaReal(producto)} total)
+                              </span>
+                            )}
                           </span>
                         </div>
+
                         <div className="flex items-center gap-2">
                           <span className="font-semibold">Existencia Mínima:</span>
                           <span className="bg-white px-2 py-1 rounded border border-gray-200">
-                            {producto.existencia_min}
+                            {producto.es_producto_paquete 
+                              ? `${producto.existencia_min} paquetes` 
+                              : producto.existencia_min
+                            }
                           </span>
                         </div>
+                        
                         <div className={`flex items-center gap-2 ${bajoMinimo ? 'text-orange-600 font-semibold' : 'text-green-600'}`}>
                           <span className="font-semibold">Estado:</span>
                           <span className="bg-white px-2 py-1 rounded border border-gray-200">
                             {agotado ? 'Agotado' : bajoMinimo ? 'Bajo mínimo' : 'Disponible'}
                           </span>
                         </div>
+
+                        {/* 🔥 NUEVA FILA: Tipo de producto */}
+                        {producto.es_producto_paquete && (
+                          <div className="flex items-center gap-2 col-span-2">
+                            <span className="font-semibold">Tipo:</span>
+                            <span className="bg-orange-100 text-orange-800 px-2 py-1 rounded border border-orange-200 text-xs font-medium">
+                              Producto Empaquetado ({producto.piezas_por_paquete} pz/paq)
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}
