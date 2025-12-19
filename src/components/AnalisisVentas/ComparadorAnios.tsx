@@ -330,7 +330,7 @@ const ComparadorMeses: React.FC = () => {
               <Tooltip content={<CustomTooltip />} />
               <Legend />
               <Bar dataKey="total" radius={[8, 8, 0, 0]}>
-                {chartData.map((entry, index) => (
+                {chartData.map((_entry, index) => (
                   <Cell 
                     key={`cell-${index}`} 
                     fill={index === 0 ? "#3b82f6" : "#8b5cf6"} 

@@ -1,6 +1,18 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { Virtuoso } from "react-virtuoso";
-import { ChevronDown, ChevronUp, Edit, Trash, PlusCircle, Package, Filter, SortAsc, SortDesc } from "lucide-react";
+import { 
+  ChevronDown, 
+  ChevronUp, 
+  Edit, 
+  Trash, 
+  PlusCircle, 
+  Package, 
+  Filter, 
+  SortAsc, 
+  SortDesc,
+  DollarSign,
+  MinusCircle 
+} from "lucide-react";
 import type { Producto } from "../types/Producto";
 
 interface Props {
@@ -20,6 +32,8 @@ const InventarioTable: React.FC<Props> = ({ productos, onEditar, onEliminar, onA
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [filtroCategoria, setFiltroCategoria] = useState<string>("Todos");
   const [filtroEstado, setFiltroEstado] = useState<string>("Todos");
+  const [filtroCostoCeroNull, setFiltroCostoCeroNull] = useState<boolean>(false);
+  const [filtroExistMinMenosUno, setFiltroExistMinMenosUno] = useState<boolean>(false);
   const [ordenAscendente, setOrdenAscendente] = useState<boolean | null>(null);
 
   const categoriaPorClave = (clave: string) => {
@@ -68,6 +82,20 @@ const InventarioTable: React.FC<Props> = ({ productos, onEditar, onEliminar, onA
         return true;
       })
       .filter((p) => {
+        if (filtroCostoCeroNull) {
+          const costoInvalido = p.costo === null || p.costo === undefined || Number(p.costo) === 0;
+          return costoInvalido;
+        }
+        return true;
+      })
+      .filter((p) => {
+        if (filtroExistMinMenosUno) {
+          const existenciaMinMenosUno = p.existencia_min === -1;
+          return existenciaMinMenosUno;
+        }
+        return true;
+      })
+      .filter((p) => {
         if (!busqueda) return true;
         const texto = busqueda.toLowerCase();
         return (
@@ -88,7 +116,7 @@ const InventarioTable: React.FC<Props> = ({ productos, onEditar, onEliminar, onA
     }
 
     return filtrados;
-  }, [productos, filtroCategoria, filtroEstado, busqueda, ordenAscendente]);
+  }, [productos, filtroCategoria, filtroEstado, filtroCostoCeroNull, filtroExistMinMenosUno, busqueda, ordenAscendente]);
 
   const totalPaginas = Math.ceil(productosFiltrados.length / pageSize);
   const startIndex = (paginaActual - 1) * pageSize;
@@ -108,7 +136,7 @@ const InventarioTable: React.FC<Props> = ({ productos, onEditar, onEliminar, onA
 
   useEffect(() => {
     setPaginaActual(1);
-  }, [filtroCategoria, filtroEstado, busqueda, pageSize]);
+  }, [filtroCategoria, filtroEstado, filtroCostoCeroNull, filtroExistMinMenosUno, busqueda, pageSize]);
 
   const formatCurrency = (n: number) => 
     n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -155,6 +183,44 @@ const InventarioTable: React.FC<Props> = ({ productos, onEditar, onEliminar, onA
           </select>
         </div>
 
+        <div className="flex items-center gap-2">
+          <div className={`p-1.5 rounded-lg ${
+            filtroCostoCeroNull ? 'bg-red-100' : 'bg-gray-100'
+          }`}>
+            <DollarSign size={16} className={filtroCostoCeroNull ? "text-red-600" : "text-gray-500"} />
+          </div>
+          <button
+            onClick={() => setFiltroCostoCeroNull(!filtroCostoCeroNull)}
+            className={`flex items-center gap-1 border rounded-xl px-3 py-2 transition-all duration-200 text-sm font-medium ${
+              filtroCostoCeroNull 
+                ? 'border-red-300 bg-red-50 text-red-700' 
+                : 'border-gray-300 bg-white text-gray-800 hover:bg-gray-50'
+            }`}
+            title="Mostrar productos con costo 0 o null"
+          >
+            Costo vacío
+          </button>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <div className={`p-1.5 rounded-lg ${
+            filtroExistMinMenosUno ? 'bg-purple-100' : 'bg-gray-100'
+          }`}>
+            <MinusCircle size={16} className={filtroExistMinMenosUno ? "text-purple-600" : "text-gray-500"} />
+          </div>
+          <button
+            onClick={() => setFiltroExistMinMenosUno(!filtroExistMinMenosUno)}
+            className={`flex items-center gap-1 border rounded-xl px-3 py-2 transition-all duration-200 text-sm font-medium ${
+              filtroExistMinMenosUno 
+                ? 'border-purple-300 bg-purple-50 text-purple-700' 
+                : 'border-gray-300 bg-white text-gray-800 hover:bg-gray-50'
+            }`}
+            title="Mostrar productos con existencia mínima = -1"
+          >
+            Exist. min = -1
+          </button>
+        </div>
+
         <div className="flex items-center gap-3">
           <div className="p-1.5 bg-purple-100 rounded-lg">
             {ordenAscendente === true ? <SortAsc size={16} className="text-purple-600" /> : 
@@ -166,6 +232,7 @@ const InventarioTable: React.FC<Props> = ({ productos, onEditar, onEliminar, onA
               setOrdenAscendente(ordenAscendente === null ? true : ordenAscendente ? false : null)
             }
             className="flex items-center gap-2 border border-gray-300 rounded-xl px-4 py-2 bg-white text-gray-800 hover:bg-gray-50 transition-all duration-200 text-sm font-medium"
+            title="Ordenar por descripción"
           >
             {ordenAscendente === null
               ? "Sin ordenar"
@@ -175,14 +242,6 @@ const InventarioTable: React.FC<Props> = ({ productos, onEditar, onEliminar, onA
           </button>
         </div>
 
-        <div className="ml-auto flex items-center gap-2">
-          <div className="p-1.5 bg-gray-100 rounded-lg">
-            <Package size={16} className="text-gray-600" />
-          </div>
-          <span className="text-sm text-gray-600 bg-white px-3 py-1 rounded-full border border-gray-200">
-            {productosFiltrados.length} productos
-          </span>
-        </div>
       </div>
 
       <div
@@ -216,13 +275,21 @@ const InventarioTable: React.FC<Props> = ({ productos, onEditar, onEliminar, onA
               const abierto = detallesAbiertos === producto.id;
               const bajoMinimo = (producto.existencia ?? 0) <= (producto.existencia_min ?? 0);
               const agotado = (producto.existencia ?? 0) <= 0;
-              
+
+              const costoInvalido = producto.costo === null || producto.costo === undefined || Number(producto.costo) === 0;
+              const existenciaMinMenosUno = producto.existencia_min === -1;
+
+              let bgColorClass = index % 2 === 0 ? "bg-white" : "bg-gray-100";
+              if (filtroCostoCeroNull && costoInvalido) {
+                bgColorClass = 'bg-red-50 hover:bg-red-100';
+              } else if (filtroExistMinMenosUno && existenciaMinMenosUno) {
+                bgColorClass = 'bg-purple-50 hover:bg-purple-100';
+              }
+
               return (
                 <div
                   key={producto.id}
-                  className={`border-b border-gray-100 transition-all duration-200 ${
-                    index % 2 === 0 ? "bg-white" : "bg-gray-100"  
-                  } hover:bg-blue-50 ${abierto ? 'bg-blue-25' : ''}`}
+                  className={`border-b border-gray-100 transition-all duration-200 ${bgColorClass} hover:bg-blue-50 ${abierto ? 'bg-blue-25' : ''}`}
                   style={{ minHeight: ROW_HEIGHT }}
                 >
                   <div
@@ -237,11 +304,15 @@ const InventarioTable: React.FC<Props> = ({ productos, onEditar, onEliminar, onA
                     </div>
 
                     <div className="text-right pr-5 font-medium text-gray-700">
-                      ${formatCurrency(Number(producto.costo))}
+                      <div className={`${costoInvalido ? 'text-red-600 font-semibold' : ''}`}>
+                        ${formatCurrency(Number(producto.costo))}
+                      </div>
                     </div>
+                    
                     <div className="text-right pr-5 font-semibold text-green-600">
                       ${formatCurrency(Number(producto.precio))}
                     </div>
+                    
                     <div className="text-right pr-5 font-semibold text-blue-700">
                       ${formatCurrency(Number(producto.precio_individual))}
                     </div>
@@ -249,8 +320,14 @@ const InventarioTable: React.FC<Props> = ({ productos, onEditar, onEliminar, onA
                     <div className="flex justify-center gap-2 ml-8">
                       <button
                         onClick={() => onEditar(producto)}
-                        className="p-2 bg-blue-100 text-blue-600 hover:bg-blue-200 rounded-xl transition-all duration-200 hover:scale-110"
-                        title="Editar producto"
+                        className={`p-2 rounded-xl transition-all duration-200 hover:scale-110 ${
+                          costoInvalido 
+                            ? 'bg-red-100 text-red-600 hover:bg-red-200'
+                            : existenciaMinMenosUno
+                            ? 'bg-purple-100 text-purple-600 hover:bg-purple-200'
+                            : 'bg-blue-100 text-blue-600 hover:bg-blue-200'
+                        }`}
+                        title={costoInvalido ? "Editar producto (costo 0/null)" : existenciaMinMenosUno ? "Editar producto (exist.min = -1)" : "Editar producto"}
                       >
                         <Edit size={18} />
                       </button>
@@ -271,7 +348,9 @@ const InventarioTable: React.FC<Props> = ({ productos, onEditar, onEliminar, onA
                       <button
                         onClick={() => toggleDetalles(producto.id)}
                         className={`p-2 rounded-xl transition-all duration-200 hover:scale-110 ${
-                          abierto ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                          abierto 
+                            ? 'bg-blue-100 text-blue-700' 
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                         }`}
                         title="Ver más detalles"
                       >
@@ -281,7 +360,13 @@ const InventarioTable: React.FC<Props> = ({ productos, onEditar, onEliminar, onA
                   </div>
 
                   {abierto && (
-                    <div className="bg-gradient-to-r from-gray-50 to-blue-50 border-t border-gray-200 px-6 py-4 text-sm text-gray-700">
+                    <div className={`border-t border-gray-200 px-6 py-4 text-sm ${
+                      costoInvalido 
+                        ? 'bg-gradient-to-r from-red-50 to-pink-50 text-gray-800' 
+                        : existenciaMinMenosUno
+                        ? 'bg-gradient-to-r from-purple-50 to-indigo-50 text-gray-800'
+                        : 'bg-gradient-to-r from-gray-50 to-blue-50 text-gray-700'
+                    }`}>
                       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                         <div className="flex items-center gap-2">
                           <span className="font-semibold">Código de Barras:</span>
@@ -304,8 +389,15 @@ const InventarioTable: React.FC<Props> = ({ productos, onEditar, onEliminar, onA
 
                         <div className="flex items-center gap-2">
                           <span className="font-semibold">Existencia Mínima:</span>
-                          <span className="bg-white px-2 py-1 rounded border border-gray-200">
-                            {producto.es_producto_paquete 
+                          <span className={`bg-white px-2 py-1 rounded border ${
+                            existenciaMinMenosUno ? 'border-purple-200 text-purple-600 font-semibold' : 'border-gray-200'
+                          }`}>
+                            {existenciaMinMenosUno ? (
+                              <span className="flex items-center gap-1">
+                                <span>-1</span>
+                                <MinusCircle size={12} />
+                              </span>
+                            ) : producto.es_producto_paquete 
                               ? `${producto.existencia_min} paquetes` 
                               : producto.existencia_min
                             }
@@ -319,7 +411,31 @@ const InventarioTable: React.FC<Props> = ({ productos, onEditar, onEliminar, onA
                           </span>
                         </div>
 
-                        {producto.es_producto_paquete && (
+                        {costoInvalido && (
+                          <div className="col-span-2">
+                            <div className="p-2 bg-red-100 text-red-800 rounded-lg border border-red-200 text-sm">
+                              <div className="flex items-center gap-2">
+                                <DollarSign size={14} />
+                                <span className="font-semibold">Costo: </span>
+                                <span>{producto.costo === null || producto.costo === undefined ? "null" : "$0.00"}</span>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {existenciaMinMenosUno && (
+                          <div className="col-span-2">
+                            <div className="p-2 bg-purple-100 text-purple-800 rounded-lg border border-purple-200 text-sm">
+                              <div className="flex items-center gap-2">
+                                <MinusCircle size={14} />
+                                <span className="font-semibold">Existencia mínima = -1</span>
+                                <span className="text-xs text-purple-600 ml-auto">(Valor especial)</span>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {producto.es_producto_paquete && !costoInvalido && !existenciaMinMenosUno && (
                           <div className="flex items-center gap-2 col-span-2">
                             <span className="font-semibold">Tipo:</span>
                             <span className="bg-orange-100 text-orange-800 px-2 py-1 rounded border border-orange-200 text-xs font-medium">
@@ -375,6 +491,15 @@ const InventarioTable: React.FC<Props> = ({ productos, onEditar, onEliminar, onA
           >
             {">>"}
           </button>
+
+          <div className="ml-auto flex items-center gap-2">
+            <div className="p-1.5 bg-gray-100 rounded-lg">
+              <Package size={16} className="text-gray-600" />
+            </div>
+            <span className="text-sm text-gray-600 bg-white px-3 py-1 rounded-full border border-gray-200">
+              {productosFiltrados.length} productos
+            </span>
+          </div>
         </div>
 
         <div className="flex items-center gap-3">

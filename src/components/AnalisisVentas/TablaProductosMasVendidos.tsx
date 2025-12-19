@@ -1,7 +1,7 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, type JSX } from "react";
 import { obtenerVentasDTO } from "../../api/ventas";
 import type { VentaResumenDTO } from "../../types/VentaResumenDTO";
-import { obtenerTopProductos } from "../../utils/analyticsUtils";
+import { obtenerTopProductos, obtenerBottomProductos } from "../../utils/analyticsUtils";
 
 function esMismoDia(fecha: Date, referencia: Date): boolean {
   return (
@@ -38,12 +38,15 @@ function esMismoAnio(fecha: Date, referencia: Date): boolean {
   return fecha.getFullYear() === referencia.getFullYear();
 }
 
-const TablaProductosMasVendidos: React.FC = () => {
+const TablaProductosAnalisis: React.FC = () => {
   const [topN, setTopN] = useState<number>(10);
   const [filtro, setFiltro] = useState<string>("mes");
   const [loading, setLoading] = useState<boolean>(true);
   const [ventasActuales, setVentasActuales] = useState<VentaResumenDTO[]>([]);
   const [topProductos, setTopProductos] = useState<
+    { productoId: number; descripcion: string; cantidadTotal: number; subtotalTotal: number }[]
+  >([]);
+  const [bottomProductos, setBottomProductos] = useState<
     { productoId: number; descripcion: string; cantidadTotal: number; subtotalTotal: number }[]
   >([]);
 
@@ -55,18 +58,6 @@ const TablaProductosMasVendidos: React.FC = () => {
         const hoy = new Date();
 
         let actuales = ventas;
-
-        const ayer = new Date(hoy);
-        ayer.setDate(hoy.getDate() - 1);
-
-        const semanaPasada = new Date(hoy);
-        semanaPasada.setDate(hoy.getDate() - 7);
-
-        const mesPasado = new Date(hoy);
-        mesPasado.setMonth(hoy.getMonth() - 1);
-
-        const anioPasado = new Date(hoy);
-        anioPasado.setFullYear(hoy.getFullYear() - 1);
 
         if (filtro === "dia") {
           actuales = ventas.filter((v) => esMismoDia(new Date(v.fecha), hoy));
@@ -81,11 +72,15 @@ const TablaProductosMasVendidos: React.FC = () => {
         setVentasActuales(actuales);
 
         const top = obtenerTopProductos(actuales, topN);
+        const bottom = obtenerBottomProductos(actuales, topN);
+        
         setTopProductos(top);
+        setBottomProductos(bottom);
       } catch (err) {
         console.error("Error cargando ventas:", err);
         setVentasActuales([]);
         setTopProductos([]);
+        setBottomProductos([]);
       } finally {
         setLoading(false);
       }
@@ -133,16 +128,87 @@ const TablaProductosMasVendidos: React.FC = () => {
     };
   }, [ventasActuales, filtro]);
 
-
   const formatCurrency = (n: number) => 
     n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  const renderTabla = (
+    productos: typeof topProductos,
+    titulo: string,
+    colorClase: string,
+    icono: JSX.Element,
+    esMasVendidos: boolean
+  ) => (
+    <div className="bg-white rounded-xl border border-gray-200 p-4 h-full">
+      <div className="flex items-center gap-3 mb-4">
+        <div className={`p-2 rounded-lg ${colorClase}`}>
+          {icono}
+        </div>
+        <div>
+          <h4 className="font-bold text-gray-900">{titulo}</h4>
+          <p className="text-sm text-gray-600">
+            {esMasVendidos 
+              ? "Productos con mayor volumen de ventas" 
+              : "Productos con menor volumen de ventas"}
+          </p>
+        </div>
+      </div>
+
+      <div className="overflow-hidden border border-gray-200 rounded-lg">
+        {productos.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">
+            <svg className="w-10 h-10 mx-auto text-gray-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <p>No hay datos disponibles</p>
+          </div>
+        ) : (
+          <table className="w-full">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="p-3 text-left text-xs font-semibold text-gray-700">#</th>
+                <th className="p-3 text-left text-xs font-semibold text-gray-700">Producto</th>
+                <th className="p-3 text-right text-xs font-semibold text-gray-700">Cantidad</th>
+                <th className="p-3 text-right text-xs font-semibold text-gray-700">Total</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {productos.map((p, index) => (
+                <tr key={p.productoId} className="hover:bg-gray-50">
+                  <td className="p-3">
+                    <div className={`w-6 h-6 ${esMasVendidos ? 'bg-blue-100' : 'bg-orange-100'} rounded flex items-center justify-center`}>
+                      <span className={`text-xs font-bold ${esMasVendidos ? 'text-blue-600' : 'text-orange-600'}`}>
+                        {index + 1}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="p-3">
+                    <span className="text-sm font-medium text-gray-900">{p.descripcion}</span>
+                  </td>
+                  <td className="p-3 text-right">
+                    <span className={`text-xs px-2 py-1 rounded-full ${esMasVendidos ? 'bg-blue-50 text-blue-700' : 'bg-orange-50 text-orange-700'}`}>
+                      {p.cantidadTotal.toLocaleString()} uds
+                    </span>
+                  </td>
+                  <td className="p-3 text-right">
+                    <span className={`text-sm font-bold ${esMasVendidos ? 'text-green-600' : 'text-amber-600'}`}>
+                      ${formatCurrency(p.subtotalTotal)}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </div>
+  );
 
   return (
     <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
         <div>
-          <h3 className="text-xl font-bold text-gray-900">Productos Más Vendidos</h3>
-          <p className="text-gray-600 text-sm mt-1">Análisis de productos por período</p>
+          <h3 className="text-xl font-bold text-gray-900">Análisis de Productos</h3>
+          <p className="text-gray-600 text-sm mt-1">Comparativa de productos más y menos vendidos</p>
         </div>
 
         <div className="flex items-center gap-3">
@@ -186,7 +252,6 @@ const TablaProductosMasVendidos: React.FC = () => {
         </div>
       </div>
 
-
       {crecimiento.porcentaje !== null && (
         <div className={`flex items-center gap-2 mb-6 p-4 bg-gradient-to-r ${crecimiento.porcentaje >= 0 ? 'from-green-50 to-green-100 border border-green-200' : 'from-red-50 to-red-100 border border-red-200'} rounded-xl`}>
           <div className={`p-2 rounded-lg ${crecimiento.porcentaje >= 0 ? 'bg-green-500' : 'bg-red-500'}`}>
@@ -217,53 +282,27 @@ const TablaProductosMasVendidos: React.FC = () => {
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
         </div>
       ) : (
-        <div className="overflow-hidden border border-gray-200 rounded-xl">
-          <table className="w-full">
-            <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
-              <tr>
-                <th className="p-4 text-left font-semibold text-gray-700">Producto</th>
-                <th className="p-4 text-right font-semibold text-gray-700">Cantidad</th>
-                <th className="p-4 text-right font-semibold text-gray-700">Total Vendido</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {topProductos.map((p, index) => (
-                <tr 
-                  key={p.productoId} 
-                  className="hover:bg-gray-50 transition-colors duration-150"
-                >
-                  <td className="p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="flex-shrink-0 w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                        <span className="text-blue-600 font-bold text-sm">
-                          #{index + 1}
-                        </span>
-                      </div>
-                      <span className="font-medium text-gray-900">{p.descripcion}</span>
-                    </div>
-                  </td>
-                  <td className="p-4 text-right">
-                    <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
-                      {p.cantidadTotal.toLocaleString()} unidades
-                    </span>
-                  </td>
-                  <td className="p-4 text-right">
-                    <span className="font-bold text-green-600">
-                      ${formatCurrency(p.subtotalTotal)}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          
-          {topProductos.length === 0 && (
-            <div className="text-center py-12 text-gray-500">
-              <svg className="w-12 h-12 mx-auto text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              <p>No hay datos disponibles para este período</p>
-            </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Tabla de Más Vendidos */}
+          {renderTabla(
+            topProductos,
+            "Productos Más Vendidos",
+            "bg-blue-100 text-blue-600",
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+            </svg>,
+            true
+          )}
+
+          {/* Tabla de Menos Vendidos */}
+          {renderTabla(
+            bottomProductos,
+            "Productos Menos Vendidos",
+            "bg-orange-100 text-orange-600",
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+            </svg>,
+            false
           )}
         </div>
       )}
@@ -271,4 +310,4 @@ const TablaProductosMasVendidos: React.FC = () => {
   );
 };
 
-export default TablaProductosMasVendidos;
+export default TablaProductosAnalisis;

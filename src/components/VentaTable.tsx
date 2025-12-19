@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import type { DetalleVentaDTO } from "../types/Venta";
 import type { Producto } from "../types/Producto";
 import { FiTrash2, FiMinus, FiPlus, FiDollarSign, FiPackage, FiBox } from "react-icons/fi";
@@ -41,6 +41,7 @@ const VentaTable: React.FC<Props> = ({
   onFocusSearch 
 }) => {
   const findProd = (id: number) => productos.find(p => p.id === id);
+  const [tempValues, setTempValues] = useState<{[key: number]: string}>({});
 
   const formatearExistencia = (producto: Producto | undefined): string => {
     if (!producto) return "0 unidades";
@@ -65,6 +66,11 @@ const VentaTable: React.FC<Props> = ({
     if (detalle) {
       const nuevaCantidad = Math.max(0.01, detalle.cantidad + cambio);
       onCantidadChange(productoId, nuevaCantidad);
+      setTempValues(prev => {
+        const newValues = {...prev};
+        delete newValues[productoId];
+        return newValues;
+      });
     }
     if (onFocusSearch) {
       setTimeout(() => onFocusSearch(), 50);
@@ -72,17 +78,58 @@ const VentaTable: React.FC<Props> = ({
   };
 
   const handleCantidadChange = (productoId: number, e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = parseFloat(e.target.value);
-    if (!isNaN(value) && value >= 0.01) {
-      onCantidadChange(productoId, value);
+    const value = e.target.value;
+    setTempValues(prev => ({
+      ...prev,
+      [productoId]: value
+    }));
+    const numberValue = parseFloat(value);
+    if (!isNaN(numberValue) && numberValue >= 0.01) {
+      onCantidadChange(productoId, numberValue);
+    }
+  };
+
+  const handleBlur = (productoId: number, currentValue: string) => {
+    const numberValue = parseFloat(currentValue);
+    if (currentValue === '' || currentValue === '.' || isNaN(numberValue) || numberValue < 0.01) {
+      const detalle = cart.find(d => d.producto_id === productoId);
+      if (detalle) {
+        onCantidadChange(productoId, detalle.cantidad);
+      }
+    } else {
+      const validValue = Math.max(0.01, numberValue);
+      onCantidadChange(productoId, validValue);
+    }
+    setTempValues(prev => {
+      const newValues = {...prev};
+      delete newValues[productoId];
+      return newValues;
+    });
+  };
+ 
+  const handleKeyDown = (_productoId: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.currentTarget.blur();
     }
   };
 
   const handleRemove = (productoId: number) => {
     onRemove(productoId);
+    setTempValues(prev => {
+      const newValues = {...prev};
+      delete newValues[productoId];
+      return newValues;
+    });
     if (onFocusSearch) {
       setTimeout(() => onFocusSearch(), 50);
     }
+  };
+
+  const getInputValue = (productoId: number, cantidad: number): string => {
+    if (tempValues[productoId] !== undefined) {
+      return tempValues[productoId];
+    }
+    return cantidad % 1 === 0 ? cantidad.toString() : cantidad.toFixed(2);
   };
 
   if (cart.length === 0) {
@@ -196,13 +243,14 @@ const VentaTable: React.FC<Props> = ({
                     <FiMinus size={12} />
                   </button>
                   <input
-                    type="number"
-                    step={producto?.es_producto_paquete && d.vender_por_unidad ? "0.01" : "1"}
-                    min="0.01"
-                    value={d.cantidad}
+                    type="text" 
+                    inputMode="decimal" 
+                    value={getInputValue(d.producto_id, d.cantidad)}
                     onChange={(e) => handleCantidadChange(d.producto_id, e)}
+                    onBlur={(e) => handleBlur(d.producto_id, e.target.value)}
+                    onKeyDown={(e) => handleKeyDown(d.producto_id, e)}
                     onFocus={(e) => e.target.select()}
-                    className="w-12 text-center bg-white border-none focus:outline-none font-semibold text-sm text-gray-900 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    className="w-16 text-center bg-white border-none focus:outline-none font-semibold text-sm text-gray-900"
                   />
                   <button
                     onClick={() => ajustarCantidad(d.producto_id, 1)}

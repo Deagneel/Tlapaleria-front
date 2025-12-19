@@ -145,3 +145,47 @@ export function obtenerTopProductos(
 export function totalVentas(series: { fecha: string; total: number }[]) {
   return series.reduce((acc, s) => acc + Number(s.total ?? 0), 0);
 }
+
+
+export function obtenerBottomProductos(
+  ventas: VentaResumenDTO[],
+  topN: number
+): { productoId: number; descripcion: string; cantidadTotal: number; subtotalTotal: number }[] {
+  const map = new Map<number, { descripcion: string; cantidadTotal: number; subtotalTotal: number }>();
+
+  for (const v of ventas) {
+    const detalles = (v.detalles ?? []) as VentaDetalleResumenDTO[];
+    for (const d of detalles) {
+      const pid = d.productoId ?? null;
+      if (pid === null) continue;
+
+      const cantidad = Number(d.cantidad ?? 0);
+      const subtotal = Number(d.subtotal ?? (d.precio ?? 0) * (d.cantidad ?? 0));
+      const descripcion = d.descripcion ?? `#${pid}`;
+
+      const current = map.get(pid);
+      if (!current) {
+        map.set(pid, { descripcion, cantidadTotal: cantidad, subtotalTotal: subtotal });
+      } else {
+        current.cantidadTotal += cantidad;
+        current.subtotalTotal += subtotal;
+        map.set(pid, current);
+      }
+    }
+  }
+
+  const arr = Array.from(map.entries()).map(([productoId, v]) => ({
+    productoId,
+    descripcion: v.descripcion,
+    cantidadTotal: v.cantidadTotal,
+    subtotalTotal: v.subtotalTotal,
+  }));
+
+  // Ordenar de menor a mayor cantidad (menos vendidos primero)
+  arr.sort((a, b) => a.cantidadTotal - b.cantidadTotal);
+  
+  // Filtrar productos con cantidad > 0 si quieres excluir productos no vendidos
+  const productosConVentas = arr.filter(p => p.cantidadTotal > 0);
+  
+  return productosConVentas.slice(0, topN);
+}
